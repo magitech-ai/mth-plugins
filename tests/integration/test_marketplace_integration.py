@@ -28,13 +28,17 @@ async def test_end_to_end_marketplace_turn(tmp_path: Path) -> None:
     assert "openrouter-provider" in artifact_map
     assert "pollinations-provider" in artifact_map
     assert "bash-tool" in artifact_map
-    assert "fs-tool" in artifact_map
+    assert "read-file-tool" in artifact_map
+    assert "write-file-tool" in artifact_map
+    assert "edit-file-tool" in artifact_map
     assert "truncation-guard" in artifact_map
     assert "compaction-guard" in artifact_map
 
     # 3. Mount tools and guardrail from marketplace
     ctx.plugins.mount_plugin(artifact_map["bash-tool"].manifest)
-    ctx.plugins.mount_plugin(artifact_map["fs-tool"].manifest)
+    ctx.plugins.mount_plugin(artifact_map["read-file-tool"].manifest)
+    ctx.plugins.mount_plugin(artifact_map["write-file-tool"].manifest)
+    ctx.plugins.mount_plugin(artifact_map["edit-file-tool"].manifest)
     ctx.plugins.mount_plugin(
         artifact_map["truncation-guard"].manifest,
         max_lines=3,
@@ -280,3 +284,31 @@ async def test_end_to_end_pollinations_anonymous_turn(tmp_path: Path) -> None:
     assert captured_payload["model"] == "openai"
     assert "authorization" not in captured_headers
     assert "Authorization" not in captured_headers
+
+
+@pytest.mark.asyncio
+async def test_fs_plugins_mount_and_unmount_independently(tmp_path: Path) -> None:
+    """Verifies read-only sandboxing and independent plugin lifecycle."""
+    ctx = create_harness(storage_dir=tmp_path / "sessions")
+    await ctx.flush()
+
+    artifacts = scan_plugins(REPO_ROOT)
+    artifact_map = {a.name: a for a in artifacts}
+
+    # Mount only read-file-tool (read-only sandbox persona)
+    ctx.plugins.mount_plugin(artifact_map["read-file-tool"].manifest)
+    await ctx.flush()
+    assert ctx.tools.get("read_file") is not None
+    assert ctx.tools.get("write_file") is None
+    assert ctx.tools.get("edit_file") is None
+
+    # Mount write-file-tool
+    ctx.plugins.mount_plugin(artifact_map["write-file-tool"].manifest)
+    await ctx.flush()
+    assert ctx.tools.get("write_file") is not None
+
+    # Unmount write-file-tool; read-file-tool remains mounted
+    await ctx.plugins.unmount_plugin("write-file-tool")
+    await ctx.flush()
+    assert ctx.tools.get("write_file") is None
+    assert ctx.tools.get("read_file") is not None

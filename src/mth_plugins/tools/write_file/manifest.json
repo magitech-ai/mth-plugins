@@ -1,0 +1,13 @@
+{
+  "name": "write-file-tool",
+  "version": "0.1.0",
+  "description": "Write text content to a file, creating parent directories for Magitech Harness",
+  "entry_point": "plugin.py:apply",
+  "types": [
+    "Tool"
+  ],
+  "requires_services": [
+    "tools"
+  ],
+  "enabled": true
+}

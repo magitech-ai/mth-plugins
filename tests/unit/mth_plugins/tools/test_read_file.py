@@ -1,4 +1,4 @@
-"""Unit tests for filesystem tools plugin in mth-plugins."""
+"""Unit tests for read_file tool plugin."""
 
 from __future__ import annotations
 
@@ -9,12 +9,8 @@ from anima import Context
 from magitech_harness.session.events import ToolCallData
 from magitech_harness.tools.service import ToolService
 
-from mth_plugins.tools.fs.fs import (
-    handle_edit_file,
-    handle_read_file,
-    handle_write_file,
-)
-from mth_plugins.tools.fs.plugin import apply
+from mth_plugins.tools.read_file.plugin import apply
+from mth_plugins.tools.read_file.read_file import handle_read_file
 
 
 @pytest.mark.asyncio
@@ -90,83 +86,23 @@ async def test_handle_read_file_pagination(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_handle_write_file(tmp_path: Path) -> None:
-    """Verifies handle_write_file creates nested dirs and writes content."""
-    # Missing path
-    res = await handle_write_file({})
-    assert "required" in res
-
-    target = tmp_path / "nested" / "sub" / "output.txt"
-    res = await handle_write_file({"path": str(target), "content": "Magitech rules"})
-    assert "Successfully wrote" in res
-    assert target.read_text(encoding="utf-8") == "Magitech rules"
-
-
-@pytest.mark.asyncio
-async def test_handle_edit_file(tmp_path: Path) -> None:
-    """Verifies handle_edit_file replaces target text accurately."""
-    # Missing args
-    res = await handle_edit_file({})
-    assert "required" in res
-
-    # Missing file
-    res = await handle_edit_file({"path": str(tmp_path / "missing.txt"), "target": "a"})
-    assert "File not found" in res
-
-    target = tmp_path / "edit_me.txt"
-    target.write_text("Hello World", encoding="utf-8")
-
-    # Target not found
-    res = await handle_edit_file(
-        {"path": str(target), "target": "Nonexistent", "replacement": "New"}
-    )
-    assert "Target string not found" in res
-
-    # Successful edit
-    res = await handle_edit_file(
-        {"path": str(target), "target": "World", "replacement": "Magitech"}
-    )
-    assert "Successfully updated" in res
-    assert target.read_text(encoding="utf-8") == "Hello Magitech"
-
-    # Target matched multiple times
-    target.write_text("repeat repeat repeat", encoding="utf-8")
-    res_multi = await handle_edit_file(
-        {"path": str(target), "target": "repeat", "replacement": "once"}
-    )
-    assert "matched 3 times" in res_multi
-    assert "Must match uniquely" in res_multi
-
-
-@pytest.mark.asyncio
-async def test_fs_plugin_integration(tmp_path: Path) -> None:
-    """Verifies fs plugin mounts tools and executes them via ToolService."""
+async def test_read_plugin_integration(tmp_path: Path) -> None:
+    """Verifies read_file plugin mounts and executes via ToolService."""
     ctx = Context()
     ctx.plugin(ToolService)
     ctx.plugin(apply)
     await ctx.flush()
 
     assert ctx.tools.get("read_file") is not None
-    assert ctx.tools.get("write_file") is not None
-    assert ctx.tools.get("edit_file") is not None
 
-    test_file = tmp_path / "integration_test.txt"
+    test_file = tmp_path / "integration_read.txt"
+    test_file.write_text("Read me successfully", encoding="utf-8")
 
-    # Call write_file
-    call_write = ToolCallData(
-        call_id="c1",
-        name="write_file",
-        arguments={"path": str(test_file), "content": "Integration testing"},
-    )
-    res_write = await ctx.tools.execute(call_write)
-    assert not res_write.is_error
-
-    # Call read_file
     call_read = ToolCallData(
-        call_id="c2",
+        call_id="c1",
         name="read_file",
         arguments={"path": str(test_file)},
     )
     res_read = await ctx.tools.execute(call_read)
     assert not res_read.is_error
-    assert res_read.content == "Integration testing"
+    assert res_read.content == "Read me successfully"

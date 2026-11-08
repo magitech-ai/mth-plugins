@@ -189,3 +189,8 @@ def test_scan_and_find_plugins(tmp_path: Path) -> None:
     assert "my-prov" in catalog["providers"]
     assert "my-bridge" in catalog["bridges"]
     assert "my-ext" in catalog["extensions"]
+
+
+def test_index_json_matches_scanned_catalog() -> None:
+    """index.json must equal the catalog derived from manifests."""
+    assert load_index() == build_catalog()
