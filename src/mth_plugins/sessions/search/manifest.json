@@ -1,0 +1,14 @@
+{
+  "name": "session-search",
+  "version": "0.1.0",
+  "description": "Full-text SQLite FTS5 search across historical sessions, messages, and tool calls for Magitech Harness",
+  "types": [
+    "Session",
+    "Tool"
+  ],
+  "entry_point": "plugin.py:apply",
+  "requires_services": [
+    "sessions"
+  ],
+  "enabled": true
+}

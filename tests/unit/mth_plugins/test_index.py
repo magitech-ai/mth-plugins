@@ -85,11 +85,18 @@ def test_determine_kind(tmp_path: Path) -> None:
     m6 = PluginManifest(name="s2", version="1.0", entry_point="p.py", types=["Sandbox"])
     assert _determine_kind(tmp_path / "custom" / "s2", m6) == "sandbox"
 
-    # 9. Other custom type
+    # 9. "sessions" in parts and "Session" in types
+    assert _determine_kind(tmp_path / "sessions" / "sess1", m1) == "session"
+    m_sess = PluginManifest(
+        name="sess2", version="1.0", entry_point="p.py", types=["Session"]
+    )
+    assert _determine_kind(tmp_path / "custom" / "sess2", m_sess) == "session"
+
+    # 10. Other custom type
     m7 = PluginManifest(name="c1", version="1.0", entry_point="p.py", types=["Custom"])
     assert _determine_kind(tmp_path / "other" / "c1", m7) == "custom"
 
-    # 10. No type, not in special directory
+    # 11. No type, not in special directory
     assert _determine_kind(tmp_path / "custom" / "x1", m1) == "extension"
 
 
@@ -98,6 +105,7 @@ def test_load_index(tmp_path: Path) -> None:
     data = load_index()
     assert "providers" in data
     assert "tools" in data
+    assert "sessions" in data
 
     custom_index = tmp_path / "custom.json"
     custom_index.write_text(json.dumps({"test": 123}), encoding="utf-8")

@@ -59,28 +59,24 @@ def load_index(index_path: Path | None = None) -> dict[str, Any]:
     return cast(dict[str, Any], data)
 
 
+_KIND_MAPPINGS: tuple[tuple[str, str], ...] = (
+    ("providers", "provider"),
+    ("guards", "guard"),
+    ("bridges", "bridge"),
+    ("tools", "tool"),
+    ("sandbox", "sandbox"),
+    ("sessions", "session"),
+)
+
+
 def _determine_kind(plugin_dir: Path, manifest: PluginManifest) -> str:
-    parts = plugin_dir.parts
-    if "providers" in parts:
-        return "provider"
-    if "guards" in parts:
-        return "guard"
-    if "bridges" in parts:
-        return "bridge"
-    if "tools" in parts:
-        return "tool"
-    if "sandbox" in parts:
-        return "sandbox"
-    if "Provider" in manifest.types:
-        return "provider"
-    if "Guard" in manifest.types:
-        return "guard"
-    if "Bridge" in manifest.types:
-        return "bridge"
-    if "Tool" in manifest.types:
-        return "tool"
-    if "Sandbox" in manifest.types:
-        return "sandbox"
+    parts = set(plugin_dir.parts)
+    for folder, kind in _KIND_MAPPINGS:
+        if folder in parts:
+            return kind
+    for _, kind in _KIND_MAPPINGS:
+        if kind.capitalize() in manifest.types:
+            return kind
     if manifest.types:
         return manifest.types[0].lower()
     return "extension"

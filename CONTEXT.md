@@ -111,3 +111,25 @@ _Avoid_: Thinking process, internal monologue, reasoning trace
 **Model Slug**:
 A standardized model identifier formatted with a namespace prefix and model name, e.g. `openrouter/auto`.
 _Avoid_: Model tag, model string, model ID
+
+### Session Persistence & Versioning
+
+**Session Index**:
+A SQLite full-text search database indexing conversations and messages from session JSONL event logs.
+_Avoid_: Message catalog, chat index, search cache
+
+**Session Title**:
+An autonomous titling service combining heuristic fallbacks with background LLM summarization.
+_Avoid_: Auto namer, session header, conversation label
+
+**Shadow Git Repository**:
+A bare Git repository isolated under user cache that tracks turn snapshots without touching primary Git tracking.
+_Avoid_: Hidden repo, secondary git, backup repo
+
+**Alternates Object Sharing**:
+A Git storage optimization linking a shadow repository to primary Git objects via `objects/info/alternates`.
+_Avoid_: Object symlink, shared blob pool
+
+**Turn Snapshot**:
+An immutable Git tree object hash representing the exact workspace filesystem state at a turn completion.
+_Avoid_: Checkpoint commit, file backup, disk dump
