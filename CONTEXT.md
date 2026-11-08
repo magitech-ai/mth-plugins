@@ -32,6 +32,10 @@ _Avoid_: Function, spell, action
 The data structure declaring a tool's name, description, JSON schema parameters, and execution callable.
 _Avoid_: Tool spec, tool signature, function metadata
 
+**Sub-Agent Triad**:
+The three standardized marketplace tools (`invoke_subagent`, `send_message`, `manage_subagents`) for conversational sub-agent delegation.
+_Avoid_: Child toolset, delegation api
+
 **Guard**:
 A plugin that intercepts turns or messages via Anima event waterfalls to enforce boundaries, safety, or token limits.
 _Avoid_: Middleware, filter, interceptor
