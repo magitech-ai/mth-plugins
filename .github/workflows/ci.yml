@@ -16,14 +16,14 @@ jobs:
         with:
           repository: magitech-ai/anima
           path: anima
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.ORG_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Checkout magitech-harness dependency
         uses: actions/checkout@v4
         with:
           repository: magitech-ai/magitech-harness
           path: magitech-harness
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.ORG_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Checkout mth-plugins
         uses: actions/checkout@v4
