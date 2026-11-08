@@ -28,6 +28,10 @@ _Avoid_: Adapter, model backend, driver
 A callable capability exposed to language models with JSON schema definitions and typed execution handlers.
 _Avoid_: Function, spell, action
 
+**Tool Definition**:
+The data structure declaring a tool's name, description, JSON schema parameters, and execution callable.
+_Avoid_: Tool spec, tool signature, function metadata
+
 **Guard**:
 A plugin that intercepts turns or messages via Anima event waterfalls to enforce boundaries, safety, or token limits.
 _Avoid_: Middleware, filter, interceptor
@@ -41,3 +45,11 @@ _Avoid_: Pruning plugin, context reducer
 **Truncation**:
 The deterministic clipping of oversized prompt context or tool output text to protect token budgets.
 _Avoid_: Compaction, pruning, slicing
+
+**Deliberation**:
+Raw reasoning or thought-chain text emitted by reasoning models prior to user-visible response tokens.
+_Avoid_: Thinking process, internal monologue, reasoning trace
+
+**Model Slug**:
+A standardized model identifier formatted with a namespace prefix and model name, e.g. `openrouter/auto`.
+_Avoid_: Model tag, model string, model ID
