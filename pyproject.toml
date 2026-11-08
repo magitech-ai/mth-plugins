@@ -48,6 +48,7 @@ select = [
     "E", "F", "W", "I", "N", "UP", "B", "A", "C4", "SIM", "PTH", "ERA", "PL", "PERF", "RUF"
 ]
 ignore = [
+    "PLR0911", # Too many return statements
     "PLR0913", # Too many arguments in function definition
     "PLR2004", # Magic value used in comparison
     "SIM105",  # try-except-pass vs suppress

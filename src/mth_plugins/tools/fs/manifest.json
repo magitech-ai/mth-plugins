@@ -1,0 +1,10 @@
+{
+  "name": "fs-tool",
+  "version": "0.1.0",
+  "description": "Filesystem tools (read_file, write_file, edit_file) for Magitech Harness",
+  "entry_point": "plugin.py:apply",
+  "types": [
+    "Tool"
+  ],
+  "enabled": true
+}

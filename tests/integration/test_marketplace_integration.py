@@ -26,10 +26,17 @@ async def test_end_to_end_marketplace_turn(tmp_path: Path) -> None:
     artifact_map = {a.name: a for a in artifacts}
     assert "openrouter-provider" in artifact_map
     assert "bash-tool" in artifact_map
+    assert "fs-tool" in artifact_map
+    assert "truncation-guard" in artifact_map
 
-    # 3. Mount bash tool
-    bash_art = artifact_map["bash-tool"]
-    ctx.plugins.mount_plugin(bash_art.manifest)
+    # 3. Mount tools and guardrail from marketplace
+    ctx.plugins.mount_plugin(artifact_map["bash-tool"].manifest)
+    ctx.plugins.mount_plugin(artifact_map["fs-tool"].manifest)
+    ctx.plugins.mount_plugin(
+        artifact_map["truncation-guard"].manifest,
+        max_lines=3,
+        max_bytes=100,
+    )
 
     # 4. Mount OpenRouter provider with mocked httpx client
     mock_client = AsyncMock(spec=httpx.AsyncClient)
@@ -88,6 +95,9 @@ async def test_end_to_end_marketplace_turn(tmp_path: Path) -> None:
     await ctx.flush()
 
     assert ctx.tools.get("bash") is not None
+    assert ctx.tools.get("read_file") is not None
+    assert ctx.tools.get("write_file") is not None
+    assert ctx.tools.get("edit_file") is not None
     assert "openrouter" in ctx.llm.providers
 
     # 5. Run turn via agent loop with OpenRouter model slug
