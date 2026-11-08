@@ -65,7 +65,7 @@ def test_estimate_history_tokens() -> None:
         ),
         _make_event(
             EventType.TOOL_RESULT,
-            {"call_id": "c1", "output": "Paris is the capital of France."},
+            {"call_id": "c1", "content": "Paris is the capital of France."},
         ),
         _make_event(
             EventType.COMPACTION,
@@ -104,7 +104,7 @@ def test_find_safe_cut_index_with_tool_pairing() -> None:
         ),
         _make_event(
             EventType.TOOL_RESULT,
-            {"call_id": "c1", "output": "ok"},
+            {"call_id": "c1", "content": "ok"},
         ),
         _make_event(
             EventType.ASSISTANT_MESSAGE,
@@ -150,7 +150,7 @@ async def test_summarize_events_offline() -> None:
         ),
         _make_event(
             EventType.TOOL_RESULT,
-            {"call_id": "c1", "output": "Report data"},
+            {"call_id": "c1", "content": "Report data"},
         ),
         _make_event(
             EventType.COMPACTION,
@@ -231,10 +231,10 @@ async def test_compact_session_success() -> None:
 
     # Verify message projection
     msgs = session.derive_messages()
-    assert len(msgs) == 3
+    assert len(msgs) == 2
     assert "[Conversation summary up to checkpoint]:" in msgs[0]["content"]
-    assert msgs[1]["content"] == "Step 2"
-    assert msgs[2]["content"] == "Step 2 answer"
+    assert "Step 2" in msgs[0]["content"]
+    assert msgs[1]["content"] == "Step 2 answer"
 
 
 @pytest.mark.asyncio

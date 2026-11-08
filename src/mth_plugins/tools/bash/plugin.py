@@ -12,6 +12,10 @@ from mth_plugins.tools.bash.bash import handle_bash
 
 def apply(ctx: Context, **kwargs: Any) -> None:
     """Mounts bash tool onto ctx.tools."""
+
+    async def _execute_bash(args: dict[str, Any]) -> str:
+        return await handle_bash(args, ctx=ctx)
+
     bash_tool = define_tool(
         name="bash",
         description="Execute a bash command in a subprocess.",
@@ -30,7 +34,7 @@ def apply(ctx: Context, **kwargs: Any) -> None:
                 "description": "Optional working directory",
             },
         },
-        execute=handle_bash,
+        execute=_execute_bash,
     )
     ctx.tools.register(bash_tool)
 

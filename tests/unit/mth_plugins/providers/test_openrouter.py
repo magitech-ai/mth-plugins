@@ -28,7 +28,12 @@ async def test_openrouter_provider_generate_text() -> None:
                 },
                 "finish_reason": "stop",
             }
-        ]
+        ],
+        "usage": {
+            "prompt_tokens": 5,
+            "completion_tokens": 15,
+            "total_tokens": 20,
+        },
     }
 
     mock_client = AsyncMock(spec=httpx.AsyncClient)
@@ -53,6 +58,7 @@ async def test_openrouter_provider_generate_text() -> None:
     assert res.text == "Hello Magitech!"
     assert res.finish_reason == "stop"
     assert res.tool_calls == []
+    assert res.usage.total_tokens == 20
 
     # Check payload sent to mock_client.post
     call_args = mock_client.post.call_args
@@ -275,6 +281,10 @@ async def test_openrouter_provider_stream_chunks() -> None:
         'data: {"choices": [{"delta": {"content": "Hello "}}]}',
         f"data: {chunk_tools}",
         f"data: {chunk_world}",
+        (
+            'data: {"usage": {"prompt_tokens": 10, '
+            '"completion_tokens": 20, "total_tokens": 30}}'
+        ),
         "data: [DONE]",
     ]
 
@@ -313,7 +323,7 @@ async def test_openrouter_provider_stream_chunks() -> None:
         )
     ]
 
-    assert len(chunks) == 3
+    assert len(chunks) == 4
     assert chunks[0].text == "Hello "
     assert len(chunks[1].tool_calls) == 3
     assert chunks[1].tool_calls[0].name == "bash"
@@ -324,8 +334,10 @@ async def test_openrouter_provider_stream_chunks() -> None:
     assert chunks[1].tool_calls[2].arguments == {"foo": "bar"}
     assert chunks[2].text == "World!"
     assert chunks[2].finish_reason == "stop"
+    assert chunks[3].usage.total_tokens == 30
 
     payload = captured_kwargs["json"]
+    assert payload["stream_options"] == {"include_usage": True}
     assert payload["model"] == "custom/model-stream"
     assert payload["temperature"] == 0.5
     assert payload["max_tokens"] == 50

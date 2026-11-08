@@ -129,6 +129,14 @@ async def test_handle_edit_file(tmp_path: Path) -> None:
     assert "Successfully updated" in res
     assert target.read_text(encoding="utf-8") == "Hello Magitech"
 
+    # Target matched multiple times
+    target.write_text("repeat repeat repeat", encoding="utf-8")
+    res_multi = await handle_edit_file(
+        {"path": str(target), "target": "repeat", "replacement": "once"}
+    )
+    assert "matched 3 times" in res_multi
+    assert "Must match uniquely" in res_multi
+
 
 @pytest.mark.asyncio
 async def test_fs_plugin_integration(tmp_path: Path) -> None:
