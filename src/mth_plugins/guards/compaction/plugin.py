@@ -1,0 +1,53 @@
+"""Anima plugin entry point for context compaction guardrail."""
+
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import Any
+
+from anima import Context
+from anima.events import EventMode
+
+from mth_plugins.guards.compaction.compaction import (
+    compact_session,
+    estimate_history_tokens,
+)
+
+
+def apply(
+    ctx: Context,
+    max_tokens: int = 8000,
+    target_ratio: float = 0.5,
+    **kwargs: Any,
+) -> None:
+    """Anima plugin registering compaction guardrail and session/compact handler."""
+
+    async def _on_session_compact(
+        payload: dict[str, Any], next_fn: Callable[..., Any]
+    ) -> dict[str, Any]:
+        session = payload.get("session")
+        if session is None and ctx.has("sessions"):
+            session = getattr(ctx.sessions, "active_session", None)
+        if session is None:
+            return await next_fn(
+                {**payload, "compacted": False, "error": "No session provided"}
+            )
+
+        res = await compact_session(ctx, session, target_ratio=target_ratio)
+        return await next_fn({**payload, **res})
+
+    async def _on_pre_step(
+        payload: dict[str, Any], next_fn: Callable[..., Any]
+    ) -> dict[str, Any]:
+        session = payload.get("session")
+        if session is not None and ctx.has("sessions"):
+            est_tokens = estimate_history_tokens(session.events)
+            if est_tokens > max_tokens:
+                await compact_session(ctx, session, target_ratio=target_ratio)
+        return await next_fn(payload)
+
+    ctx.on("session/compact", _on_session_compact, mode=EventMode.WATERFALL)
+    ctx.on("agent/pre-step", _on_pre_step, mode=EventMode.WATERFALL)
+
+
+apply.inject = ["sessions"]  # type: ignore[attr-defined]

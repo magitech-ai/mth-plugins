@@ -34,6 +34,16 @@
     }
   },
   "guards": {
+    "compaction-guard": {
+      "version": "0.1.0",
+      "description": "Context compaction guardrail and slash command plugin for Magitech Harness",
+      "path": "src/mth_plugins/guards/compaction",
+      "entry_point": "plugin.py:apply",
+      "types": [
+        "Guard"
+      ],
+      "enabled": true
+    },
     "truncation-guard": {
       "version": "0.1.0",
       "description": "Output truncation guardrail (tools/post-execute waterfall) for Magitech Harness",

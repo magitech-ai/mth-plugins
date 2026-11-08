@@ -1,0 +1,10 @@
+{
+  "name": "compaction-guard",
+  "version": "0.1.0",
+  "description": "Context compaction guardrail and slash command plugin for Magitech Harness",
+  "entry_point": "plugin.py:apply",
+  "types": [
+    "Guard"
+  ],
+  "enabled": true
+}

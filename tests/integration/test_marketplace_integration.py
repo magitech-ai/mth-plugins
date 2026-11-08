@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 from magitech_harness import create_harness
+from magitech_harness.session.events import EventType
 
 from mth_plugins.index import REPO_ROOT, scan_plugins
 from mth_plugins.providers.openrouter.provider import OpenRouterProvider
@@ -28,6 +29,7 @@ async def test_end_to_end_marketplace_turn(tmp_path: Path) -> None:
     assert "bash-tool" in artifact_map
     assert "fs-tool" in artifact_map
     assert "truncation-guard" in artifact_map
+    assert "compaction-guard" in artifact_map
 
     # 3. Mount tools and guardrail from marketplace
     ctx.plugins.mount_plugin(artifact_map["bash-tool"].manifest)
@@ -111,3 +113,116 @@ async def test_end_to_end_marketplace_turn(tmp_path: Path) -> None:
     assert "The command executed successfully" in result
     # user -> model (tool_call) -> tool_result -> model (final)
     assert len(session.events) >= 4
+
+
+@pytest.mark.asyncio
+async def test_end_to_end_marketplace_streaming_and_compaction(
+    tmp_path: Path,
+) -> None:
+    """Verifies streaming agent turn with tool calling and context compaction."""
+    ctx = create_harness(storage_dir=tmp_path / "sessions")
+    await ctx.flush()
+
+    artifacts = scan_plugins(REPO_ROOT)
+    artifact_map = {a.name: a for a in artifacts}
+
+    ctx.plugins.mount_plugin(artifact_map["bash-tool"].manifest)
+    ctx.plugins.mount_plugin(artifact_map["compaction-guard"].manifest)
+
+    # Mock SSE stream responses
+    tool_args = json.dumps({"command": "echo 'Stream test'"})
+    tc_chunk = {
+        "choices": [
+            {
+                "delta": {
+                    "tool_calls": [
+                        {
+                            "id": "call-stream-1",
+                            "function": {
+                                "name": "bash",
+                                "arguments": tool_args,
+                            },
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+    tc_done = {"choices": [{"delta": {}, "finish_reason": "tool_calls"}]}
+
+    answer_chunk = {"choices": [{"delta": {"content": "Stream completed."}}]}
+    answer_done = {"choices": [{"delta": {}, "finish_reason": "stop"}]}
+
+    step1_lines = [
+        f"data: {json.dumps(tc_chunk)}",
+        f"data: {json.dumps(tc_done)}",
+        "data: [DONE]",
+    ]
+    step2_lines = [
+        f"data: {json.dumps(answer_chunk)}",
+        f"data: {json.dumps(answer_done)}",
+        "data: [DONE]",
+    ]
+
+    class MockStreamResp:
+        def __init__(self, sse_lines):
+            self.status_code = 200
+            self._lines = sse_lines
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            pass
+
+        async def aiter_lines(self):
+            for line in self._lines:
+                yield line
+
+    step_counter = 0
+
+    class MockStreamClient:
+        def stream(self, method, url, **kwargs):
+            nonlocal step_counter
+            step_counter += 1
+            if step_counter == 1:
+                return MockStreamResp(step1_lines)
+            return MockStreamResp(step2_lines)
+
+    provider = OpenRouterProvider(api_key="mock-key", client=MockStreamClient())
+    ctx.llm.register_provider("openrouter", provider)
+    await ctx.flush()
+
+    session = ctx.sessions.create("sess_stream_e2e")
+    streamed_events = [
+        ev
+        async for ev in ctx.agent_loop.stream_turn(
+            session,
+            "Run streaming echo",
+            model="openrouter/gpt-4o",
+        )
+    ]
+
+    assert len(streamed_events) > 0
+    token_events = [e for e in streamed_events if e.get("type") == "chunk"]
+    assert len(token_events) > 0
+    assert token_events[0]["text"] == "Stream completed."
+
+    # Turn complete: history has user, tool call, tool result, assistant
+    assert len(session.events) >= 4
+
+    # Trigger context compaction through waterfall
+    compact_res = await ctx.waterfall(
+        "session/compact",
+        {"session": session, "status": "requested"},
+        default_handler=lambda p: p,
+    )
+
+    assert compact_res["compacted"] is True
+    assert "summary" in compact_res
+    assert session.events[-1].type == EventType.COMPACTION
+
+    # Verify message projection folds history
+    msgs = session.derive_messages()
+    assert len(msgs) >= 2
+    assert "[Conversation summary up to checkpoint]:" in msgs[0]["content"]
