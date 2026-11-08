@@ -57,7 +57,7 @@ def test_tree_hash_os_error_handling(tmp_path: Path) -> None:
     target_dir.mkdir()
     (target_dir / "file.txt").write_text("sample")
 
-    with patch.object(Path, "stat", side_effect=OSError("Permission denied")):
+    with patch.object(Path, "open", side_effect=OSError("Permission denied")):
         # Gracefully skips unreadable file and finishes
         h = compute_directory_tree_hash(target_dir)
         assert h.startswith("sha256:")
