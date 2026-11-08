@@ -1,0 +1,16 @@
+{
+  "name": "subagent-tool",
+  "version": "0.1.0",
+  "description": "In-process subagent orchestration triad with workspace isolation and cancellation cascading for Magitech Harness",
+  "types": [
+    "Tool"
+  ],
+  "entry_point": "plugin.py:apply",
+  "requires_services": [
+    "sessions"
+  ],
+  "recommended_plugins": [
+    "sandbox-ladder"
+  ],
+  "enabled": true
+}

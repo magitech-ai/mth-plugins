@@ -1,0 +1,13 @@
+{
+  "name": "session-title",
+  "version": "0.1.0",
+  "description": "Autonomous session titling combining fast heuristic fallback and background LLM summarization for Magitech Harness",
+  "types": [
+    "Session"
+  ],
+  "entry_point": "plugin.py:apply",
+  "requires_services": [
+    "sessions"
+  ],
+  "enabled": true
+}

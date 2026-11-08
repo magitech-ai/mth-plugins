@@ -1,0 +1,14 @@
+{
+  "name": "checkpoint-bridge",
+  "version": "0.1.0",
+  "description": "Shadow Git repository turn snapshotting, diffing, and restoration for Magitech Harness",
+  "types": [
+    "Bridge",
+    "Tool"
+  ],
+  "entry_point": "plugin.py:apply",
+  "requires_services": [
+    "sessions"
+  ],
+  "enabled": true
+}

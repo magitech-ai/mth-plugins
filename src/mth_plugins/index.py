@@ -59,13 +59,24 @@ def load_index(index_path: Path | None = None) -> dict[str, Any]:
     return cast(dict[str, Any], data)
 
 
+_KIND_MAPPINGS: tuple[tuple[str, str], ...] = (
+    ("providers", "provider"),
+    ("guards", "guard"),
+    ("bridges", "bridge"),
+    ("tools", "tool"),
+    ("sandbox", "sandbox"),
+    ("sessions", "session"),
+)
+
+
 def _determine_kind(plugin_dir: Path, manifest: PluginManifest) -> str:
-    if "providers" in plugin_dir.parts or "Provider" in manifest.types:
-        return "provider"
-    if "guards" in plugin_dir.parts or "Guard" in manifest.types:
-        return "guard"
-    if "tools" in plugin_dir.parts or "Tool" in manifest.types:
-        return "tool"
+    parts = set(plugin_dir.parts)
+    for folder, kind in _KIND_MAPPINGS:
+        if folder in parts:
+            return kind
+    for _, kind in _KIND_MAPPINGS:
+        if kind.capitalize() in manifest.types:
+            return kind
     if manifest.types:
         return manifest.types[0].lower()
     return "extension"
@@ -128,10 +139,12 @@ def build_catalog(root: Path | None = None) -> dict[str, Any]:
         "providers": {},
         "tools": {},
         "guards": {},
+        "bridges": {},
+        "sandboxes": {},
     }
 
     for art in artifacts:
-        target_section = f"{art.kind}s"
+        target_section = "sandboxes" if art.kind == "sandbox" else f"{art.kind}s"
         if target_section not in catalog:
             catalog[target_section] = {}
         catalog[target_section][art.name] = {

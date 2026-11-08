@@ -1,0 +1,328 @@
+"""SubagentManager for spawning, coordinating, and managing delegated subagents."""
+
+from __future__ import annotations
+
+import asyncio
+import contextlib
+import logging
+import subprocess
+import uuid
+from collections.abc import Callable, Sequence
+from pathlib import Path
+
+from anima import Context, Service
+from magitech_harness.agent.cancellation import AbortSignal
+from magitech_harness.agent.loop import AgentLoopService
+from magitech_harness.llm.service import LLMService
+from magitech_harness.session.service import SessionService
+from magitech_harness.tools.service import ToolService
+
+from mth_plugins.tools.subagent.types import (
+    RESEARCH_PRESET_TOOLS,
+    SubagentRecord,
+    SubagentSpec,
+    SubagentState,
+)
+
+logger = logging.getLogger(__name__)
+
+SUBAGENT_TRIAD_TOOLS = frozenset(
+    {"invoke_subagent", "send_message", "manage_subagents"}
+)
+
+
+def _make_abort_forwarder(
+    parent_signal: AbortSignal, child_signal: AbortSignal
+) -> Callable[[], None]:
+    """Creates a zero-argument callback propagating parent abort to child."""
+
+    def _forward() -> None:
+        child_signal.abort(parent_signal.reason)
+
+    return _forward
+
+
+class SubagentManager(Service):
+    """Manages conversational subagent lifecycles and workspace isolation."""
+
+    def __init__(
+        self,
+        ctx: Context,
+        subsessions_dir: Path | None = None,
+        workspace_root: Path | None = None,
+    ) -> None:
+        super().__init__(ctx, "subagents")
+        self.subsessions_dir = subsessions_dir or (
+            Path.home() / ".agents" / "sessions" / "subsessions"
+        )
+        self.subsessions_dir.mkdir(parents=True, exist_ok=True)
+        self.workspace_root = (
+            workspace_root or getattr(ctx, "workspace_dir", None) or Path.cwd()
+        )
+
+        self._records: dict[str, SubagentRecord] = {}
+        self._child_contexts: dict[str, Context] = {}
+        self._signals: dict[str, AbortSignal] = {}
+        self._tasks: dict[str, asyncio.Task[None]] = {}
+        self._worktrees: dict[str, Path] = {}
+
+    def list_records(self) -> list[SubagentRecord]:
+        """Returns all tracked subagent execution records."""
+        return list(self._records.values())
+
+    async def invoke(
+        self,
+        specs: Sequence[SubagentSpec],
+        *,
+        parent_signal: AbortSignal | None = None,
+    ) -> list[SubagentRecord]:
+        """Spawns and executes subagents according to given specifications."""
+        records: list[SubagentRecord] = []
+        waiting_coroutines: list[tuple[str, str]] = []
+
+        for spec in specs:
+            subagent_id = f"sub-{uuid.uuid4().hex[:8]}"
+            workspace_path = await self._resolve_workspace(subagent_id, spec.workspace)
+
+            child_model = (
+                getattr(getattr(self.ctx, "llm", None), "default_model", "inherit")
+                if spec.model == "inherit"
+                else spec.model
+            )
+            child_name = spec.agent_name or "subagent"
+
+            child_ctx = Context()
+            setattr(child_ctx, "workspace_dir", workspace_path)  # noqa: B010
+
+            # Set up session storage
+            child_sessions = SessionService(
+                child_ctx, base_storage_dir=self.subsessions_dir
+            )
+            session_id = f"session-{subagent_id}"
+            child_sessions.create(session_id)
+            session_path = self.subsessions_dir / f"{session_id}.jsonl"
+
+            # Set up LLM service
+            if hasattr(self.ctx, "llm"):
+                child_llm = LLMService(child_ctx)
+                child_llm._providers = dict(self.ctx.llm._providers)
+                child_llm._active_provider_name = self.ctx.llm._active_provider_name
+
+            # Set up scoped tools
+            child_tools = ToolService(child_ctx)
+            effective_tools = self._populate_child_tools(child_tools, spec)
+
+            # Set up loop service
+            AgentLoopService(child_ctx)
+
+            # Cancellation propagation
+            child_signal = AbortSignal()
+            if parent_signal is not None:
+                parent_signal.on_abort(
+                    _make_abort_forwarder(parent_signal, child_signal)
+                )
+            self._signals[subagent_id] = child_signal
+
+            record = SubagentRecord(
+                subagent_id=subagent_id,
+                role=spec.role,
+                agent_name=child_name,
+                model_id=child_model or "inherit",
+                workspace_path=workspace_path,
+                session_id=session_id,
+                session_path=session_path,
+                state=SubagentState.PENDING,
+                state_detail="Initialized",
+                effective_tools=effective_tools,
+            )
+
+            self._records[subagent_id] = record
+            self._child_contexts[subagent_id] = child_ctx
+            records.append(record)
+
+            prompt = (
+                spec.prompt or f"You are a subagent with role {spec.role}. Acknowledge."
+            )
+            if spec.wait:
+                waiting_coroutines.append((subagent_id, prompt))
+            else:
+                task = asyncio.create_task(self._run_child(subagent_id, prompt))
+                self._tasks[subagent_id] = task
+
+        if waiting_coroutines:
+            await asyncio.gather(
+                *[self._run_child(sid, prompt) for sid, prompt in waiting_coroutines]
+            )
+
+        return records
+
+    def _populate_child_tools(
+        self,
+        child_tools: ToolService,
+        spec: SubagentSpec,
+    ) -> list[str]:
+        """Populates child tool service filtered by allowed specifications."""
+        allowed: frozenset[str] | None
+        if spec.allowed_tools is not None:
+            allowed = spec.allowed_tools
+        elif "research" in spec.role.lower():
+            allowed = RESEARCH_PRESET_TOOLS
+        else:
+            allowed = None
+
+        effective: list[str] = []
+        parent_tools = getattr(self.ctx, "tools", None)
+        if parent_tools is not None:
+            for name, tool in parent_tools._registry.items():
+                if name in SUBAGENT_TRIAD_TOOLS:
+                    continue
+                if allowed is None or name in allowed:
+                    child_tools.register(tool)
+                    effective.append(name)
+        return effective
+
+    async def _resolve_workspace(
+        self,
+        subagent_id: str,
+        workspace_mode: str,
+    ) -> Path:
+        """Resolves workspace path, creating a git worktree if branch mode."""
+        parent_ws = self.workspace_root
+        if workspace_mode != "branch":
+            return parent_ws
+
+        git_dir = parent_ws / ".git"
+        if not git_dir.exists():
+            return parent_ws
+
+        worktree_dir = self.subsessions_dir / "worktrees" / subagent_id
+        worktree_dir.parent.mkdir(parents=True, exist_ok=True)
+
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "git",
+                "worktree",
+                "add",
+                "--detach",
+                str(worktree_dir),
+                "HEAD",
+                cwd=str(parent_ws),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            await proc.communicate()
+            if proc.returncode == 0:
+                self._worktrees[subagent_id] = worktree_dir
+                return worktree_dir
+        except (OSError, subprocess.SubprocessError) as ex:
+            logger.warning("Failed to create worktree for %s: %s", subagent_id, ex)
+
+        return parent_ws
+
+    async def _run_child(self, subagent_id: str, prompt: str) -> None:
+        """Executes a single conversational turn in the child subagent loop."""
+        record = self._records[subagent_id]
+        child_ctx = self._child_contexts[subagent_id]
+        signal = self._signals.get(subagent_id)
+
+        record.state = SubagentState.RUNNING
+        record.state_detail = "Executing turn"
+
+        try:
+            session = child_ctx.sessions.get(record.session_id)
+            if session is None:
+                raise RuntimeError(
+                    f"Session {record.session_id} not found in child context"
+                )
+
+            res = await child_ctx.agent_loop.run_turn(
+                session,
+                prompt,
+                model=record.model_id if record.model_id != "inherit" else None,
+                signal=signal,
+            )
+            record.state = SubagentState.COMPLETED
+            record.state_detail = "Finished"
+            record.summary = res
+        except Exception as ex:
+            record.state = SubagentState.ERRORED
+            record.state_detail = "Failed"
+            record.error = str(ex)
+            logger.exception("Error executing subagent turn for %s", subagent_id)
+
+    async def send_message(self, subagent_id: str, message: str) -> SubagentRecord:
+        """Sends a follow-up instruction to an existing active subagent."""
+        record = self._records.get(subagent_id)
+        if record is None:
+            raise ValueError(f"Subagent '{subagent_id}' does not exist.")
+
+        if record.state is SubagentState.TERMINATED:
+            raise ValueError(f"Cannot message terminated subagent '{subagent_id}'.")
+
+        await self._run_child(subagent_id, message)
+        return record
+
+    async def manage(
+        self,
+        action: str,
+        subagent_ids: list[str] | None = None,
+    ) -> list[SubagentRecord]:
+        """Inspects or terminates active subagents."""
+        if action == "list":
+            return self.list_records()
+
+        if action == "kill":
+            ids = subagent_ids or []
+            results: list[SubagentRecord] = []
+            for sid in ids:
+                if sid in self._records:
+                    await self._terminate_child(sid)
+                    results.append(self._records[sid])
+            return results
+
+        if action == "kill_all":
+            results = []
+            for sid in list(self._records.keys()):
+                await self._terminate_child(sid)
+                results.append(self._records[sid])
+            return results
+
+        raise ValueError(f"Unknown manage_subagents action '{action}'")
+
+    async def _terminate_child(self, subagent_id: str) -> None:
+        """Terminates an individual subagent and cleans up worktrees."""
+        if subagent_id in self._signals:
+            self._signals[subagent_id].abort("Subagent terminated by manager.")
+
+        if subagent_id in self._tasks:
+            task = self._tasks[subagent_id]
+            if not task.done():
+                task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await task
+
+        if subagent_id in self._worktrees:
+            worktree_dir = self._worktrees.pop(subagent_id)
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    "git",
+                    "worktree",
+                    "remove",
+                    "--force",
+                    str(worktree_dir),
+                    cwd=str(self.workspace_root),
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                await proc.communicate()
+            except (OSError, subprocess.SubprocessError) as ex:
+                logger.warning("Failed to remove worktree %s: %s", worktree_dir, ex)
+
+        record = self._records.get(subagent_id)
+        if record is not None:
+            record.state = SubagentState.TERMINATED
+            record.state_detail = "Terminated"
+
+    async def shutdown(self) -> None:
+        """Terminates all active subagents and releases allocated resources."""
+        await self.manage("kill_all")

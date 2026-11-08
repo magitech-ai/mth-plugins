@@ -1,11 +1,16 @@
 """Unit test for guard packages exports."""
 
+import mth_plugins.guards.approval as approval_pkg
 import mth_plugins.guards.compaction as compaction_pkg
 import mth_plugins.guards.truncation as truncation_pkg
 
 
 def test_package_exports() -> None:
     """Verifies that truncation and compaction packages export expected symbols."""
+    assert hasattr(approval_pkg, "apply")
+    assert hasattr(approval_pkg, "ApprovalGuard")
+    assert hasattr(approval_pkg, "ApprovalPolicy")
+
     assert hasattr(truncation_pkg, "apply")
     assert hasattr(truncation_pkg, "truncate_head")
     assert hasattr(truncation_pkg, "truncate_tail")

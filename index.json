@@ -32,6 +32,16 @@
       ],
       "enabled": true
     },
+    "codeact-tool": {
+      "version": "0.1.0",
+      "description": "Sandboxed CodeAct Python execution environment with AST write-protection and tool auto-dispatching for Magitech Harness",
+      "path": "src/mth_plugins/tools/codeact",
+      "entry_point": "plugin.py:apply",
+      "types": [
+        "Tool"
+      ],
+      "enabled": true
+    },
     "fs-tool": {
       "version": "0.1.0",
       "description": "Filesystem tools (read_file, write_file, edit_file) for Magitech Harness",
@@ -41,9 +51,29 @@
         "Tool"
       ],
       "enabled": true
+    },
+    "subagent-tool": {
+      "version": "0.1.0",
+      "description": "In-process subagent orchestration triad with workspace isolation and cancellation cascading for Magitech Harness",
+      "path": "src/mth_plugins/tools/subagent",
+      "entry_point": "plugin.py:apply",
+      "types": [
+        "Tool"
+      ],
+      "enabled": true
     }
   },
   "guards": {
+    "approval-guard": {
+      "version": "0.1.0",
+      "description": "Layered fail-closed approval policy guardrail and authorization broker for Magitech Harness",
+      "path": "src/mth_plugins/guards/approval",
+      "entry_point": "plugin.py:apply",
+      "types": [
+        "Guard"
+      ],
+      "enabled": true
+    },
     "compaction-guard": {
       "version": "0.1.0",
       "description": "Context compaction guardrail and slash command plugin for Magitech Harness",
@@ -61,6 +91,115 @@
       "entry_point": "plugin.py:apply",
       "types": [
         "Guard"
+      ],
+      "enabled": true
+    },
+    "workspace-trust-gate": {
+      "version": "0.1.0",
+      "description": "Workspace trust verification and integrity gate for Magitech Harness",
+      "path": "src/mth_plugins/guards/trust",
+      "entry_point": "plugin.py:apply",
+      "types": [
+        "Guard"
+      ],
+      "enabled": true
+    }
+  },
+  "bridges": {
+    "checkpoint-bridge": {
+      "version": "0.1.0",
+      "description": "Shadow Git repository turn snapshotting, diffing, and restoration for Magitech Harness",
+      "path": "src/mth_plugins/bridges/checkpoint",
+      "entry_point": "plugin.py:apply",
+      "types": [
+        "Bridge",
+        "Tool"
+      ],
+      "enabled": true
+    },
+    "lsp-bridge": {
+      "version": "0.1.0",
+      "description": "Language Server Protocol (LSP) diagnostics and code intelligence bridge for Magitech Harness",
+      "path": "src/mth_plugins/bridges/lsp",
+      "entry_point": "plugin.py:apply",
+      "types": [
+        "Bridge",
+        "Tool"
+      ],
+      "enabled": true
+    },
+    "mcp-bridge": {
+      "version": "0.1.0",
+      "description": "Model Context Protocol (MCP) client bridge for Magitech Harness",
+      "path": "src/mth_plugins/bridges/mcp",
+      "entry_point": "plugin.py:apply",
+      "types": [
+        "Bridge"
+      ],
+      "enabled": true
+    },
+    "opentelemetry-bridge": {
+      "version": "0.1.0",
+      "description": "OpenTelemetry distributed tracing instrumentation bridge conforming to GenAI semantic conventions for Magitech Harness",
+      "path": "src/mth_plugins/bridges/otel",
+      "entry_point": "plugin.py:apply",
+      "types": [
+        "Bridge"
+      ],
+      "enabled": true
+    },
+    "skills-bridge": {
+      "version": "0.1.0",
+      "description": "Progressive Agent Skills discovery and execution bridge for Magitech Harness",
+      "path": "src/mth_plugins/bridges/skills",
+      "entry_point": "plugin.py:apply",
+      "types": [
+        "Bridge"
+      ],
+      "enabled": true
+    },
+    "steering-bridge": {
+      "version": "0.1.0",
+      "description": "Hierarchical AGENTS.md steering and prompt scaffolding bridge for Magitech Harness",
+      "path": "src/mth_plugins/bridges/steering",
+      "entry_point": "plugin.py:apply",
+      "types": [
+        "Bridge"
+      ],
+      "enabled": true
+    }
+  },
+  "sandboxes": {
+    "sandbox-ladder": {
+      "version": "0.1.0",
+      "description": "Privilege ladder and Bubblewrap containment sandbox for Magitech Harness",
+      "path": "src/mth_plugins/sandbox",
+      "entry_point": "plugin.py:apply",
+      "types": [
+        "Sandbox"
+      ],
+      "enabled": true
+    }
+  },
+  "sessions": {
+    "session-search": {
+      "version": "0.1.0",
+      "description": "Full-text SQLite FTS5 search across historical sessions, messages, and tool calls for Magitech Harness",
+      "path": "src/mth_plugins/sessions/search",
+      "entry_point": "plugin.py:apply",
+      "types": [
+        "Session",
+        "Tool"
+      ],
+      "enabled": true
+    },
+    "session-title": {
+      "version": "0.1.0",
+      "description": "Autonomous session titling combining fast heuristic fallback and background LLM summarization for Magitech Harness",
+      "path": "src/mth_plugins/sessions/title",
+      "entry_point": "plugin.py:apply",
+      "types": [
+        "Session"
       ],
       "enabled": true
     }

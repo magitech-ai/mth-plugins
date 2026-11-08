@@ -75,11 +75,28 @@ def test_determine_kind(tmp_path: Path) -> None:
     m4 = PluginManifest(name="t2", version="1.0", entry_point="p.py", types=["Tool"])
     assert _determine_kind(tmp_path / "custom" / "t2", m4) == "tool"
 
-    # 7. Other custom type
-    m5 = PluginManifest(name="b1", version="1.0", entry_point="p.py", types=["Bridge"])
-    assert _determine_kind(tmp_path / "custom" / "b1", m5) == "bridge"
+    # 7. "bridges" in parts and "Bridge" in types
+    assert _determine_kind(tmp_path / "bridges" / "b1", m1) == "bridge"
+    m5 = PluginManifest(name="b2", version="1.0", entry_point="p.py", types=["Bridge"])
+    assert _determine_kind(tmp_path / "custom" / "b2", m5) == "bridge"
 
-    # 8. No type, not in special directory
+    # 8. "sandbox" in parts and "Sandbox" in types
+    assert _determine_kind(tmp_path / "sandbox" / "s1", m1) == "sandbox"
+    m6 = PluginManifest(name="s2", version="1.0", entry_point="p.py", types=["Sandbox"])
+    assert _determine_kind(tmp_path / "custom" / "s2", m6) == "sandbox"
+
+    # 9. "sessions" in parts and "Session" in types
+    assert _determine_kind(tmp_path / "sessions" / "sess1", m1) == "session"
+    m_sess = PluginManifest(
+        name="sess2", version="1.0", entry_point="p.py", types=["Session"]
+    )
+    assert _determine_kind(tmp_path / "custom" / "sess2", m_sess) == "session"
+
+    # 10. Other custom type
+    m7 = PluginManifest(name="c1", version="1.0", entry_point="p.py", types=["Custom"])
+    assert _determine_kind(tmp_path / "other" / "c1", m7) == "custom"
+
+    # 11. No type, not in special directory
     assert _determine_kind(tmp_path / "custom" / "x1", m1) == "extension"
 
 
@@ -88,6 +105,7 @@ def test_load_index(tmp_path: Path) -> None:
     data = load_index()
     assert "providers" in data
     assert "tools" in data
+    assert "sessions" in data
 
     custom_index = tmp_path / "custom.json"
     custom_index.write_text(json.dumps({"test": 123}), encoding="utf-8")
@@ -114,7 +132,7 @@ def test_scan_and_find_plugins(tmp_path: Path) -> None:
         encoding="utf-8",
     )
 
-    # Bridge (creates non-standard section in catalog)
+    # Bridge (standard bridge section in catalog)
     bridge_dir = tmp_path / "custom" / "my_bridge"
     bridge_dir.mkdir(parents=True)
     (bridge_dir / "manifest.json").write_text(
@@ -124,6 +142,21 @@ def test_scan_and_find_plugins(tmp_path: Path) -> None:
                 "version": "0.1.0",
                 "entry_point": "plugin.py",
                 "types": ["Bridge"],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    # Extension (creates non-standard 'extensions' section in catalog)
+    ext_dir = tmp_path / "custom" / "my_ext"
+    ext_dir.mkdir(parents=True)
+    (ext_dir / "manifest.json").write_text(
+        json.dumps(
+            {
+                "name": "my-ext",
+                "version": "0.1.0",
+                "entry_point": "plugin.py",
+                "types": ["Extension"],
             }
         ),
         encoding="utf-8",
@@ -143,7 +176,8 @@ def test_scan_and_find_plugins(tmp_path: Path) -> None:
     names = {a.name for a in artifacts}
     assert "my-prov" in names
     assert "my-bridge" in names
-    assert len(artifacts) == 2
+    assert "my-ext" in names
+    assert len(artifacts) == 3
 
     found = find_plugin("my-prov", root=tmp_path)
     assert found is not None
@@ -154,3 +188,4 @@ def test_scan_and_find_plugins(tmp_path: Path) -> None:
     catalog = build_catalog(tmp_path)
     assert "my-prov" in catalog["providers"]
     assert "my-bridge" in catalog["bridges"]
+    assert "my-ext" in catalog["extensions"]

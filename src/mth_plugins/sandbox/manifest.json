@@ -1,0 +1,10 @@
+{
+  "name": "sandbox-ladder",
+  "version": "0.1.0",
+  "description": "Privilege ladder and Bubblewrap containment sandbox for Magitech Harness",
+  "entry_point": "plugin.py:apply",
+  "types": [
+    "Sandbox"
+  ],
+  "enabled": true
+}

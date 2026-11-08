@@ -1,0 +1,10 @@
+{
+  "name": "workspace-trust-gate",
+  "version": "0.1.0",
+  "description": "Workspace trust verification and integrity gate for Magitech Harness",
+  "entry_point": "plugin.py:apply",
+  "types": [
+    "Guard"
+  ],
+  "enabled": true
+}
