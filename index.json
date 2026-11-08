@@ -32,6 +32,16 @@
       ],
       "enabled": true
     },
+    "codeact-tool": {
+      "version": "0.1.0",
+      "description": "Sandboxed CodeAct Python execution environment with AST write-protection and tool auto-dispatching for Magitech Harness",
+      "path": "src/mth_plugins/tools/codeact",
+      "entry_point": "plugin.py:apply",
+      "types": [
+        "Tool"
+      ],
+      "enabled": true
+    },
     "fs-tool": {
       "version": "0.1.0",
       "description": "Filesystem tools (read_file, write_file, edit_file) for Magitech Harness",
@@ -44,6 +54,16 @@
     }
   },
   "guards": {
+    "approval-guard": {
+      "version": "0.1.0",
+      "description": "Layered fail-closed approval policy guardrail and authorization broker for Magitech Harness",
+      "path": "src/mth_plugins/guards/approval",
+      "entry_point": "plugin.py:apply",
+      "types": [
+        "Guard"
+      ],
+      "enabled": true
+    },
     "compaction-guard": {
       "version": "0.1.0",
       "description": "Context compaction guardrail and slash command plugin for Magitech Harness",
@@ -76,10 +96,31 @@
     }
   },
   "bridges": {
+    "lsp-bridge": {
+      "version": "0.1.0",
+      "description": "Language Server Protocol (LSP) diagnostics and code intelligence bridge for Magitech Harness",
+      "path": "src/mth_plugins/bridges/lsp",
+      "entry_point": "plugin.py:apply",
+      "types": [
+        "Bridge",
+        "Tool"
+      ],
+      "enabled": true
+    },
     "mcp-bridge": {
       "version": "0.1.0",
       "description": "Model Context Protocol (MCP) client bridge for Magitech Harness",
       "path": "src/mth_plugins/bridges/mcp",
+      "entry_point": "plugin.py:apply",
+      "types": [
+        "Bridge"
+      ],
+      "enabled": true
+    },
+    "opentelemetry-bridge": {
+      "version": "0.1.0",
+      "description": "OpenTelemetry distributed tracing instrumentation bridge conforming to GenAI semantic conventions for Magitech Harness",
+      "path": "src/mth_plugins/bridges/otel",
       "entry_point": "plugin.py:apply",
       "types": [
         "Bridge"

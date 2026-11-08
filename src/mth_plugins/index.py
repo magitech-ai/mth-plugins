@@ -60,15 +60,26 @@ def load_index(index_path: Path | None = None) -> dict[str, Any]:
 
 
 def _determine_kind(plugin_dir: Path, manifest: PluginManifest) -> str:
-    if "providers" in plugin_dir.parts or "Provider" in manifest.types:
+    parts = plugin_dir.parts
+    if "providers" in parts:
         return "provider"
-    if "guards" in plugin_dir.parts or "Guard" in manifest.types:
+    if "guards" in parts:
         return "guard"
-    if "tools" in plugin_dir.parts or "Tool" in manifest.types:
-        return "tool"
-    if "bridges" in plugin_dir.parts or "Bridge" in manifest.types:
+    if "bridges" in parts:
         return "bridge"
-    if "sandbox" in plugin_dir.parts or "Sandbox" in manifest.types:
+    if "tools" in parts:
+        return "tool"
+    if "sandbox" in parts:
+        return "sandbox"
+    if "Provider" in manifest.types:
+        return "provider"
+    if "Guard" in manifest.types:
+        return "guard"
+    if "Bridge" in manifest.types:
+        return "bridge"
+    if "Tool" in manifest.types:
+        return "tool"
+    if "Sandbox" in manifest.types:
         return "sandbox"
     if manifest.types:
         return manifest.types[0].lower()
