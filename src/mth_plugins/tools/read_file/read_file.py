@@ -1,4 +1,4 @@
-"""Filesystem tool handlers for reading, writing, and editing files."""
+"""Filesystem tool handler for reading files."""
 
 from __future__ import annotations
 
@@ -67,51 +67,3 @@ async def handle_read_file(args: dict[str, Any]) -> str:
         window = window[:limit]
 
     return "\n".join(window)
-
-
-async def handle_write_file(args: dict[str, Any]) -> str:
-    """Writes content to a file at the given path, creating parent directories."""
-    path_str = args.get("path")
-    if not path_str:
-        return "Error: 'path' argument is required."
-    content = args.get("content", "")
-
-    file_path = Path(path_str)
-
-    def _write() -> None:
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        file_path.write_text(content, encoding="utf-8")
-
-    await asyncio.to_thread(_write)
-    return f"Successfully wrote to {path_str}"
-
-
-async def handle_edit_file(args: dict[str, Any]) -> str:
-    """Replaces target string with replacement string in the specified file."""
-    path_str = args.get("path")
-    target = args.get("target")
-    replacement = args.get("replacement", "")
-
-    if not path_str or target is None:
-        return "Error: 'path' and 'target' arguments are required."
-
-    file_path = Path(path_str)
-    if not file_path.exists():
-        return f"Error: File not found: {path_str}"
-
-    def _perform_edit() -> str:
-        content = file_path.read_text(encoding="utf-8")
-        count = content.count(target)
-        if count == 0:
-            return f"Error: Target string not found in {path_str}"
-        if count > 1:
-            return (
-                f"Error: Target string matched {count} times in {path_str}. "
-                "Must match uniquely (exactly 1 occurrence)."
-            )
-
-        new_content = content.replace(target, replacement, 1)
-        file_path.write_text(new_content, encoding="utf-8")
-        return f"Successfully updated {path_str}"
-
-    return await asyncio.to_thread(_perform_edit)

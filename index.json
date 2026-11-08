@@ -42,10 +42,20 @@
       ],
       "enabled": true
     },
-    "fs-tool": {
+    "edit-file-tool": {
       "version": "0.1.0",
-      "description": "Filesystem tools (read_file, write_file, edit_file) for Magitech Harness",
-      "path": "src/mth_plugins/tools/fs",
+      "description": "Replace target string with replacement string in a file for Magitech Harness",
+      "path": "src/mth_plugins/tools/edit_file",
+      "entry_point": "plugin.py:apply",
+      "types": [
+        "Tool"
+      ],
+      "enabled": true
+    },
+    "read-file-tool": {
+      "version": "0.1.0",
+      "description": "Read file contents with line offset and limit pagination for Magitech Harness",
+      "path": "src/mth_plugins/tools/read_file",
       "entry_point": "plugin.py:apply",
       "types": [
         "Tool"
@@ -56,6 +66,16 @@
       "version": "0.1.0",
       "description": "In-process subagent orchestration triad with workspace isolation and cancellation cascading for Magitech Harness",
       "path": "src/mth_plugins/tools/subagent",
+      "entry_point": "plugin.py:apply",
+      "types": [
+        "Tool"
+      ],
+      "enabled": true
+    },
+    "write-file-tool": {
+      "version": "0.1.0",
+      "description": "Write text content to a file, creating parent directories for Magitech Harness",
+      "path": "src/mth_plugins/tools/write_file",
       "entry_point": "plugin.py:apply",
       "types": [
         "Tool"

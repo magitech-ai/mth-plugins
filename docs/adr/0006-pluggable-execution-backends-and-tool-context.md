@@ -5,7 +5,7 @@ Status: accepted
 
 ## Context
 
-Domain tools such as shell execution (`bash-tool`) and filesystem manipulation (`fs-tool`) execute directly against host operating system primitives. Hardcoding ambient host OS access inside tool handlers introduces security risks in untrusted workspaces, prevents running tools inside isolated containers or remote sandboxes, and complicates hermetic testing. Furthermore, passing runtime execution parameters (such as cancellation signals, working directories, or execution backends) can leak internal implementation details into model-facing JSON schemas.
+Domain tools such as shell execution (`bash-tool`) and filesystem manipulation (`read-file-tool`, `write-file-tool`, `edit-file-tool`) execute directly against host operating system primitives. Hardcoding ambient host OS access inside tool handlers introduces security risks in untrusted workspaces, prevents running tools inside isolated containers or remote sandboxes, and complicates hermetic testing. Furthermore, passing runtime execution parameters (such as cancellation signals, working directories, or execution backends) can leak internal implementation details into model-facing JSON schemas.
 
 ## Decision
 

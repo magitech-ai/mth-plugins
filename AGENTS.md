@@ -5,7 +5,7 @@
 - **Zero Ancestral Mentions Rule**: Absolute prohibition against naming ancestral or upstream projects/brands anywhere in code, tests, docstrings, commits, or documentation.
 - **Repository Role & Marketplace Structure**:
   - `mth-plugins` is the official extensible plugin marketplace for `magitech-harness`.
-  - Implements pluggable model providers (`openrouter-provider`, `pollinations-provider`), domain tools (`fs-tool`, `bash-tool`), and guardrails (`truncation-guard`, `compaction-guard`).
+  - Implements pluggable model providers (`openrouter-provider`, `pollinations-provider`), domain tools (`bash-tool`, `codeact-tool`, `read-file-tool`, `write-file-tool`, `edit-file-tool`), and guardrails (`truncation-guard`, `compaction-guard`).
   - Every plugin ships with a `manifest.json` describing its metadata, type, and entrypoints, registered in `index.json`.
 - **Capability Seam Symmetry**: Every plugin is a **Service Provider** mounted into `anima` context via an `apply(ctx)` entry point, registering capabilities onto explicit services (`ctx.llm`, `ctx.tools`, etc.).
 - **Registrations are Effects**: Contributions register onto context and return an explicit disposer closure.
