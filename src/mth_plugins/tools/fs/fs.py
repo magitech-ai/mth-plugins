@@ -99,10 +99,19 @@ async def handle_edit_file(args: dict[str, Any]) -> str:
     if not file_path.exists():
         return f"Error: File not found: {path_str}"
 
-    content = file_path.read_text(encoding="utf-8")
-    if target not in content:
-        return f"Error: Target string not found in {path_str}"
+    def _perform_edit() -> str:
+        content = file_path.read_text(encoding="utf-8")
+        count = content.count(target)
+        if count == 0:
+            return f"Error: Target string not found in {path_str}"
+        if count > 1:
+            return (
+                f"Error: Target string matched {count} times in {path_str}. "
+                "Must match uniquely (exactly 1 occurrence)."
+            )
 
-    new_content = content.replace(target, replacement)
-    file_path.write_text(new_content, encoding="utf-8")
-    return f"Successfully updated {path_str}"
+        new_content = content.replace(target, replacement, 1)
+        file_path.write_text(new_content, encoding="utf-8")
+        return f"Successfully updated {path_str}"
+
+    return await asyncio.to_thread(_perform_edit)

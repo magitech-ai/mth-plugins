@@ -9,8 +9,20 @@ from typing import Any
 
 import httpx
 from magitech_harness.agent.cancellation import AbortSignal
-from magitech_harness.llm.types import ModelChunk, ModelResponse
+from magitech_harness.llm.types import ModelChunk, ModelResponse, UsageData
 from magitech_harness.session.events import ToolCallData
+
+
+def _parse_usage(raw_usage: dict[str, Any] | None) -> UsageData:
+    """Parses raw usage dictionary into UsageData instance."""
+    if not raw_usage:
+        return UsageData()
+    return UsageData(
+        prompt_tokens=raw_usage.get("prompt_tokens", 0),
+        completion_tokens=raw_usage.get("completion_tokens", 0),
+        total_tokens=raw_usage.get("total_tokens", 0),
+        reasoning_tokens=raw_usage.get("reasoning_tokens", 0),
+    )
 
 
 def _parse_tool_calls(raw_tool_calls: list[dict[str, Any]]) -> list[ToolCallData]:
@@ -58,8 +70,11 @@ def _parse_sse_line(line: str) -> tuple[bool, ModelChunk | None]:
     except json.JSONDecodeError:
         return False, None
 
+    usage_data = _parse_usage(data.get("usage"))
     choices = data.get("choices") or []
     if not choices:
+        if usage_data.total_tokens > 0:
+            return False, ModelChunk(usage=usage_data)
         return False, None
 
     choice = choices[0]
@@ -68,11 +83,12 @@ def _parse_sse_line(line: str) -> tuple[bool, ModelChunk | None]:
     finish_reason = choice.get("finish_reason")
     tool_calls = _parse_tool_calls(delta.get("tool_calls") or [])
 
-    if text_delta or tool_calls or finish_reason:
+    if text_delta or tool_calls or finish_reason or usage_data.total_tokens > 0:
         return False, ModelChunk(
             text=text_delta,
             tool_calls=tool_calls,
             finish_reason=finish_reason,
+            usage=usage_data,
         )
     return False, None
 
@@ -120,6 +136,7 @@ class OpenRouterProvider:
         }
         if stream:
             payload["stream"] = True
+            payload["stream_options"] = {"include_usage": True}
         if tools:
             payload["tools"] = tools
 
@@ -163,8 +180,14 @@ class OpenRouterProvider:
 
         data = response.json()
         choices = data.get("choices") or []
+        usage_data = _parse_usage(data.get("usage"))
         if not choices:
-            return ModelResponse(text="", finish_reason="stop", raw_response=data)
+            return ModelResponse(
+                text="",
+                finish_reason="stop",
+                raw_response=data,
+                usage=usage_data,
+            )
 
         choice = choices[0]
         msg = choice.get("message") or {}
@@ -176,6 +199,7 @@ class OpenRouterProvider:
             tool_calls=tool_calls,
             finish_reason=finish_reason,
             raw_response=data,
+            usage=usage_data,
         )
 
     async def stream(

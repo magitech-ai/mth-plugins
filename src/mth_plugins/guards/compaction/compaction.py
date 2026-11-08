@@ -31,7 +31,9 @@ def estimate_history_tokens(events: list[SessionEvent]) -> int:
             for tc in ev.payload.get("tool_calls") or []:
                 total += estimate_tokens(str(tc))
         elif ev.type == EventType.TOOL_RESULT:
-            total += estimate_tokens(str(ev.payload.get("output", "")))
+            total += estimate_tokens(
+                str(ev.payload.get("content", ev.payload.get("output", "")))
+            )
         elif ev.type == EventType.COMPACTION:
             total += estimate_tokens(str(ev.payload.get("summary", "")))
         else:
@@ -68,7 +70,8 @@ def _format_event_bullet(ev: SessionEvent) -> str | None:
         items.extend(f"Tool call '{name}'" for name in tc_names)
         return "- " + "; ".join(items) if items else None
     if ev.type == EventType.TOOL_RESULT:
-        return f"- Tool result: {ev.payload.get('output', '')}"
+        content = ev.payload.get("content", ev.payload.get("output", ""))
+        return f"- Tool result: {content}"
     if ev.type == EventType.COMPACTION:
         return f"- Prior Summary: {ev.payload.get('summary', '')}"
     return None
