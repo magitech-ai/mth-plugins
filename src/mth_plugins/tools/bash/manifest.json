@@ -1,0 +1,10 @@
+{
+  "name": "bash-tool",
+  "version": "0.1.0",
+  "description": "Subprocess shell execution tool for Magitech Harness",
+  "entry_point": "plugin.py:apply",
+  "types": [
+    "Tool"
+  ],
+  "enabled": true
+}
