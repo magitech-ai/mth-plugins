@@ -66,6 +66,10 @@ def _determine_kind(plugin_dir: Path, manifest: PluginManifest) -> str:
         return "guard"
     if "tools" in plugin_dir.parts or "Tool" in manifest.types:
         return "tool"
+    if "bridges" in plugin_dir.parts or "Bridge" in manifest.types:
+        return "bridge"
+    if "sandbox" in plugin_dir.parts or "Sandbox" in manifest.types:
+        return "sandbox"
     if manifest.types:
         return manifest.types[0].lower()
     return "extension"
@@ -128,10 +132,12 @@ def build_catalog(root: Path | None = None) -> dict[str, Any]:
         "providers": {},
         "tools": {},
         "guards": {},
+        "bridges": {},
+        "sandboxes": {},
     }
 
     for art in artifacts:
-        target_section = f"{art.kind}s"
+        target_section = "sandboxes" if art.kind == "sandbox" else f"{art.kind}s"
         if target_section not in catalog:
             catalog[target_section] = {}
         catalog[target_section][art.name] = {

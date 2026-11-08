@@ -63,6 +63,60 @@
         "Guard"
       ],
       "enabled": true
+    },
+    "workspace-trust-gate": {
+      "version": "0.1.0",
+      "description": "Workspace trust verification and integrity gate for Magitech Harness",
+      "path": "src/mth_plugins/guards/trust",
+      "entry_point": "plugin.py:apply",
+      "types": [
+        "Guard"
+      ],
+      "enabled": true
+    }
+  },
+  "bridges": {
+    "mcp-bridge": {
+      "version": "0.1.0",
+      "description": "Model Context Protocol (MCP) client bridge for Magitech Harness",
+      "path": "src/mth_plugins/bridges/mcp",
+      "entry_point": "plugin.py:apply",
+      "types": [
+        "Bridge"
+      ],
+      "enabled": true
+    },
+    "skills-bridge": {
+      "version": "0.1.0",
+      "description": "Progressive Agent Skills discovery and execution bridge for Magitech Harness",
+      "path": "src/mth_plugins/bridges/skills",
+      "entry_point": "plugin.py:apply",
+      "types": [
+        "Bridge"
+      ],
+      "enabled": true
+    },
+    "steering-bridge": {
+      "version": "0.1.0",
+      "description": "Hierarchical AGENTS.md steering and prompt scaffolding bridge for Magitech Harness",
+      "path": "src/mth_plugins/bridges/steering",
+      "entry_point": "plugin.py:apply",
+      "types": [
+        "Bridge"
+      ],
+      "enabled": true
+    }
+  },
+  "sandboxes": {
+    "sandbox-ladder": {
+      "version": "0.1.0",
+      "description": "Privilege ladder and Bubblewrap containment sandbox for Magitech Harness",
+      "path": "src/mth_plugins/sandbox",
+      "entry_point": "plugin.py:apply",
+      "types": [
+        "Sandbox"
+      ],
+      "enabled": true
     }
   }
 }

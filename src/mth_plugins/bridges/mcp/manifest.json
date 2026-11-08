@@ -1,0 +1,10 @@
+{
+  "name": "mcp-bridge",
+  "version": "0.1.0",
+  "description": "Model Context Protocol (MCP) client bridge for Magitech Harness",
+  "entry_point": "plugin.py:apply",
+  "types": [
+    "Bridge"
+  ],
+  "enabled": true
+}

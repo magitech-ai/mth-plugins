@@ -1,0 +1,10 @@
+{
+  "name": "steering-bridge",
+  "version": "0.1.0",
+  "description": "Hierarchical AGENTS.md steering and prompt scaffolding bridge for Magitech Harness",
+  "entry_point": "plugin.py:apply",
+  "types": [
+    "Bridge"
+  ],
+  "enabled": true
+}
