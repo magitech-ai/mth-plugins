@@ -32,15 +32,33 @@ _Avoid_: Function, spell, action
 The data structure declaring a tool's name, description, JSON schema parameters, and execution callable.
 _Avoid_: Tool spec, tool signature, function metadata
 
+**Execution Backend**:
+The abstraction mediating subprocess execution and filesystem operations across local, containerized, or sandboxed environments.
+_Avoid_: Shell runner, execution environment, runner
+
+**Tool Context**:
+The internal runtime parameters injected into a tool handler at execution time and hidden from model schemas.
+_Avoid_: Tool state, execution payload
+
+### Delegation & Multi-Agent
+
+**Sub-Agent**:
+A scoped, delegated agent execution instance that performs tasks and communicates with a parent agent.
+_Avoid_: Child agent, slave agent, worker
+
+**Sub-Session**:
+A durable, append-only session log recorded under `subsessions/` dedicated to a sub-agent's execution history.
+_Avoid_: Child thread, sub-log, child session
+
 **Sub-Agent Triad**:
 The three standardized marketplace tools (`invoke_subagent`, `send_message`, `manage_subagents`) for conversational sub-agent delegation.
 _Avoid_: Child toolset, delegation api
 
+### Interception & Transformations
+
 **Guard**:
 A plugin that intercepts turns or messages via Anima event waterfalls to enforce boundaries, safety, or token limits.
 _Avoid_: Middleware, filter, interceptor
-
-### Interception & Transformations
 
 **Compaction Guard**:
 A guard plugin that monitors token pressure and triggers conversational history summarization at balanced cut points.
