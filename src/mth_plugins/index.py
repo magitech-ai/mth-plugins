@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from magitech_harness.plugins.manifest import PluginManifest
 
@@ -55,7 +55,8 @@ def load_index(index_path: Path | None = None) -> dict[str, Any]:
     path = index_path or DEFAULT_INDEX_PATH
     if not path.is_file():
         raise FileNotFoundError(f"Marketplace index not found at {path}")
-    return json.loads(path.read_text(encoding="utf-8"))
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return cast(dict[str, Any], data)
 
 
 def _determine_kind(plugin_dir: Path, manifest: PluginManifest) -> str:

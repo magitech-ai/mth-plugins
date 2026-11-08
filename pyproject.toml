@@ -60,8 +60,15 @@ indent-style = "space"
 
 [dependency-groups]
 dev = [
+    "mypy>=1.15.0",
     "pytest>=9.2.0",
     "pytest-asyncio>=1.4.1.post1",
     "pytest-cov>=7.1.0",
     "ruff>=0.17.4",
 ]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from anima import Context
 from anima.events import EventMode
@@ -29,12 +29,14 @@ def apply(
         if session is None and ctx.has("sessions"):
             session = getattr(ctx.sessions, "active_session", None)
         if session is None:
-            return await next_fn(
+            no_sess_res = await next_fn(
                 {**payload, "compacted": False, "error": "No session provided"}
             )
+            return cast(dict[str, Any], no_sess_res)
 
         res = await compact_session(ctx, session, target_ratio=target_ratio)
-        return await next_fn({**payload, **res})
+        compact_res = await next_fn({**payload, **res})
+        return cast(dict[str, Any], compact_res)
 
     async def _on_pre_step(
         payload: dict[str, Any], next_fn: Callable[..., Any]
@@ -44,7 +46,8 @@ def apply(
             est_tokens = estimate_history_tokens(session.events)
             if est_tokens > max_tokens:
                 await compact_session(ctx, session, target_ratio=target_ratio)
-        return await next_fn(payload)
+        pre_step_res = await next_fn(payload)
+        return cast(dict[str, Any], pre_step_res)
 
     ctx.on("session/compact", _on_session_compact, mode=EventMode.WATERFALL)
     ctx.on("agent/pre-step", _on_pre_step, mode=EventMode.WATERFALL)

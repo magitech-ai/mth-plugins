@@ -94,7 +94,7 @@ async def summarize_events(
         try:
             res = await ctx.llm.call(messages=[{"role": "user", "content": prompt}])
             if res.text.strip():
-                return res.text.strip()
+                return str(res.text).strip()
         except Exception as exc:
             logger.warning("LLM summarization failed (%s); using fallback", exc)
 
