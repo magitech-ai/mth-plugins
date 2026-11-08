@@ -40,6 +40,42 @@ _Avoid_: Shell runner, execution environment, runner
 The internal runtime parameters injected into a tool handler at execution time and hidden from model schemas.
 _Avoid_: Tool state, execution payload
 
+**Service Dependency**:
+A required capability contract declared by a plugin via `inject` and `requires_services`, decoupled from concrete vendor package IDs.
+_Avoid_: Plugin requirement, package import
+
+**CodeAct**:
+Direct execution of model-synthesized Python snippets with AST write-protection for registered tools, auto-`await` dispatching, and persistent session locals.
+_Avoid_: Python tool, eval script, REPL runner
+
+### Security & Human-in-the-Loop
+
+**Approval Policy**:
+A declarative TOML document (`policy.toml`) in global or workspace layers mapping tool identifiers and argument regex patterns to `allow` or `deny` outcomes.
+_Avoid_: Permission list, authorization config
+
+**Approval Request**:
+An immutable question containing engine-derived tool identity, normalized arguments, and a cryptographic argument digest (`sha256:...`).
+_Avoid_: Permission prompt, authorization ticket
+
+**Approval Decision**:
+An immutable verdict bound by cryptographic argument digest carrying an outcome (`allow`, `deny`), reason code (`rule`, `user`, `read_only`, `failure`), and grant scope (`once`, `session`, `project`).
+_Avoid_: User confirmation, auth response
+
+**Approval Scope**:
+The temporal lifetime of an authorization: `once` for single-shot execution, `session` for the active conversation, or `project` persisted to workspace policy.
+_Avoid_: Grant duration, timeout
+
+### Diagnostics & Observability
+
+**Language Server Bridge**:
+A background JSON-RPC 2.0 stdio client translating file mutations (`edit`, `write`) into debounced compiler diagnostics and providing semantic definition/reference lookup.
+_Avoid_: Linter plugin, compiler checker
+
+**Distributed Tracing Bridge**:
+An OpenTelemetry instrumentation layer capturing turn lifecycles, provider requests, and tool executions as hierarchical trace spans.
+_Avoid_: Logging plugin, APM hook
+
 ### Delegation & Multi-Agent
 
 **Sub-Agent**:
