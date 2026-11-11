@@ -185,7 +185,10 @@ async def test_lsp_client_document_sync_and_diagnostics(workspace: Path) -> None
         )
 
     pub_task = asyncio.create_task(_publish_later())
-    received = await client.wait_for_diagnostics(uri, debounce_ms=10, timeout_ms=500)
+    # Wide debounce: wait_for_diagnostics only waits 2x the debounce for
+    # the first event, and Windows timer granularity (~15.6 ms) can delay
+    # the 10 ms publish past a 20 ms window, returning [] instead.
+    received = await client.wait_for_diagnostics(uri, debounce_ms=50, timeout_ms=500)
     await pub_task
     assert received == diags
 
