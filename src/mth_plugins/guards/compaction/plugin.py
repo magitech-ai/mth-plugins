@@ -14,13 +14,11 @@ from mth_plugins.guards.compaction.compaction import (
 )
 
 
-def apply(
-    ctx: Context,
-    max_tokens: int = 8000,
-    target_ratio: float = 0.5,
-    **kwargs: Any,
-) -> None:
+def apply(ctx: Context, config: dict | None = None, **kwargs: Any) -> None:
     """Anima plugin registering compaction guardrail and session/compact handler."""
+    cfg = {**(config or {}), **kwargs}
+    max_tokens: int = cfg.get("max_tokens", 8000)
+    target_ratio: float = cfg.get("target_ratio", 0.5)
 
     async def _on_session_compact(
         payload: dict[str, Any], next_fn: Callable[..., Any]

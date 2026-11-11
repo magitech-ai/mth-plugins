@@ -13,7 +13,7 @@ def test_session_search_service(tmp_path: Path) -> None:
     ctx = Context()
     sessions_dir = tmp_path / "sessions"
     sessions_dir.mkdir()
-    SessionService(ctx, base_storage_dir=sessions_dir)
+    SessionService(ctx, {"base_storage_dir": sessions_dir})
 
     db_path = tmp_path / "search.db"
     service = SessionSearchService(ctx, db_path=db_path)

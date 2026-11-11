@@ -16,13 +16,11 @@ logger = logging.getLogger("mth_plugins.guards.trust")
 class WorkspaceTrustGate(Service):
     """Guards workspace extension execution behind cryptographic trust checks."""
 
-    def __init__(
-        self,
-        ctx: Context,
-        store: TrustStore | None = None,
-        store_path: Path | str | None = None,
-    ) -> None:
+    def __init__(self, ctx: Context, config: dict | None = None) -> None:
         super().__init__(ctx, "trust")
+        cfg = config or {}
+        store: TrustStore | None = cfg.get("store")
+        store_path: Path | str | None = cfg.get("store_path")
         path = Path(store_path) if store_path else None
         self.store = store or TrustStore(path)
 

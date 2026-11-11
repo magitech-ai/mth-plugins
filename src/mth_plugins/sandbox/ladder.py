@@ -157,17 +157,12 @@ def build_bubblewrap_command(
 class SandboxService(Service):
     """Service providing process sandboxing and privilege budget management."""
 
-    def __init__(
-        self,
-        ctx: Context,
-        max_level: PrivilegeLevel = PrivilegeLevel.STRICT,
-        enforce: bool = False,
-        bwrap_path: str | None = None,
-    ) -> None:
+    def __init__(self, ctx: Context, config: dict | None = None) -> None:
         super().__init__(ctx, "sandbox")
-        self.max_level = max_level
-        self.enforce = enforce
-        self.bwrap_path = find_bubblewrap(bwrap_path)
+        cfg = config or {}
+        self.max_level = cfg.get("max_level", PrivilegeLevel.STRICT)
+        self.enforce = cfg.get("enforce", False)
+        self.bwrap_path = find_bubblewrap(cfg.get("bwrap_path"))
 
     def is_available(self) -> bool:
         """Returns True if a hardware/OS container sandbox backend is available."""

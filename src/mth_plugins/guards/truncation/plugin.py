@@ -15,13 +15,11 @@ from mth_plugins.guards.truncation.truncation import (
 )
 
 
-def apply(
-    ctx: Context,
-    max_lines: int = DEFAULT_MAX_LINES,
-    max_bytes: int = DEFAULT_MAX_BYTES,
-    **kwargs: Any,
-) -> None:
+def apply(ctx: Context, config: dict | None = None, **kwargs: Any) -> None:
     """Anima plugin applying post-execute tool truncation guardrail."""
+    cfg = {**(config or {}), **kwargs}
+    max_lines: int = cfg.get("max_lines", DEFAULT_MAX_LINES)
+    max_bytes: int = cfg.get("max_bytes", DEFAULT_MAX_BYTES)
 
     async def _post_execute(
         output: Any, call_data: Any, next_fn: Callable[..., Any]
