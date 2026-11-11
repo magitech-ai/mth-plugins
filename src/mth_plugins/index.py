@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
-from magitech_harness.plugins.manifest import PluginManifest
+from magitech_harness.components.manifest import ComponentManifest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 DEFAULT_INDEX_PATH = REPO_ROOT / "index.json"
@@ -23,7 +23,7 @@ class ComponentArtifact:
     name: str
     kind: str
     path: Path
-    manifest: PluginManifest
+    manifest: ComponentManifest
 
     @property
     def relative_path(self) -> str:
@@ -69,7 +69,7 @@ _KIND_MAPPINGS: tuple[tuple[str, str], ...] = (
 )
 
 
-def _determine_kind(component_dir: Path, manifest: PluginManifest) -> str:
+def _determine_kind(component_dir: Path, manifest: ComponentManifest) -> str:
     parts = set(component_dir.parts)
     for folder, kind in _KIND_MAPPINGS:
         if folder in parts:
@@ -106,7 +106,7 @@ def scan_components(root: Path | None = None) -> list[ComponentArtifact]:
             content = manifest_path.read_text(encoding="utf-8")
             data = json.loads(content)
             data["path"] = manifest_path.parent
-            manifest = PluginManifest.model_validate(data)
+            manifest = ComponentManifest.model_validate(data)
 
             component_dir = manifest_path.parent
             kind = _determine_kind(component_dir, manifest)

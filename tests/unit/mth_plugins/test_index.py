@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
-from magitech_harness.plugins.manifest import PluginManifest
+from magitech_harness.components.manifest import ComponentManifest
 
 from mth_plugins.index import (
     REPO_ROOT,
@@ -21,7 +21,7 @@ from mth_plugins.index import (
 
 def test_component_artifact_properties(tmp_path: Path) -> None:
     """Verifies relative_path and entry_point_path resolution."""
-    manifest = PluginManifest(
+    manifest = ComponentManifest(
         name="test-component",
         version="1.0.0",
         entry_point="component.py:apply",
@@ -52,11 +52,11 @@ def test_component_artifact_properties(tmp_path: Path) -> None:
 def test_determine_kind(tmp_path: Path) -> None:
     """Verifies kind detection logic across all branches."""
     # 1. "providers" in parts
-    m1 = PluginManifest(name="p1", version="1.0", entry_point="p.py")
+    m1 = ComponentManifest(name="p1", version="1.0", entry_point="p.py")
     assert _determine_kind(tmp_path / "providers" / "p1", m1) == "provider"
 
     # 2. "Provider" in types
-    m2 = PluginManifest(
+    m2 = ComponentManifest(
         name="p2", version="1.0", entry_point="p.py", types=["Provider"]
     )
     assert _determine_kind(tmp_path / "custom" / "p2", m2) == "provider"
@@ -65,35 +65,43 @@ def test_determine_kind(tmp_path: Path) -> None:
     assert _determine_kind(tmp_path / "guards" / "g1", m1) == "guard"
 
     # 4. "Guard" in types
-    m3 = PluginManifest(name="g2", version="1.0", entry_point="p.py", types=["Guard"])
+    m3 = ComponentManifest(
+        name="g2", version="1.0", entry_point="p.py", types=["Guard"]
+    )
     assert _determine_kind(tmp_path / "custom" / "g2", m3) == "guard"
 
     # 5. "tools" in parts
     assert _determine_kind(tmp_path / "tools" / "t1", m1) == "tool"
 
     # 6. "Tool" in types
-    m4 = PluginManifest(name="t2", version="1.0", entry_point="p.py", types=["Tool"])
+    m4 = ComponentManifest(name="t2", version="1.0", entry_point="p.py", types=["Tool"])
     assert _determine_kind(tmp_path / "custom" / "t2", m4) == "tool"
 
     # 7. "bridges" in parts and "Bridge" in types
     assert _determine_kind(tmp_path / "bridges" / "b1", m1) == "bridge"
-    m5 = PluginManifest(name="b2", version="1.0", entry_point="p.py", types=["Bridge"])
+    m5 = ComponentManifest(
+        name="b2", version="1.0", entry_point="p.py", types=["Bridge"]
+    )
     assert _determine_kind(tmp_path / "custom" / "b2", m5) == "bridge"
 
     # 8. "sandbox" in parts and "Sandbox" in types
     assert _determine_kind(tmp_path / "sandbox" / "s1", m1) == "sandbox"
-    m6 = PluginManifest(name="s2", version="1.0", entry_point="p.py", types=["Sandbox"])
+    m6 = ComponentManifest(
+        name="s2", version="1.0", entry_point="p.py", types=["Sandbox"]
+    )
     assert _determine_kind(tmp_path / "custom" / "s2", m6) == "sandbox"
 
     # 9. "sessions" in parts and "Session" in types
     assert _determine_kind(tmp_path / "sessions" / "sess1", m1) == "session"
-    m_sess = PluginManifest(
+    m_sess = ComponentManifest(
         name="sess2", version="1.0", entry_point="p.py", types=["Session"]
     )
     assert _determine_kind(tmp_path / "custom" / "sess2", m_sess) == "session"
 
     # 10. Other custom type
-    m7 = PluginManifest(name="c1", version="1.0", entry_point="p.py", types=["Custom"])
+    m7 = ComponentManifest(
+        name="c1", version="1.0", entry_point="p.py", types=["Custom"]
+    )
     assert _determine_kind(tmp_path / "other" / "c1", m7) == "custom"
 
     # 11. No type, not in special directory

@@ -35,11 +35,11 @@ async def test_end_to_end_marketplace_turn(tmp_path: Path) -> None:
     assert "compaction-guard" in artifact_map
 
     # 3. Mount tools and guardrail from marketplace
-    ctx.plugins.mount_plugin(artifact_map["bash-tool"].manifest)
-    ctx.plugins.mount_plugin(artifact_map["read-file-tool"].manifest)
-    ctx.plugins.mount_plugin(artifact_map["write-file-tool"].manifest)
-    ctx.plugins.mount_plugin(artifact_map["edit-file-tool"].manifest)
-    ctx.plugins.mount_plugin(
+    ctx.components.mount_component(artifact_map["bash-tool"].manifest)
+    ctx.components.mount_component(artifact_map["read-file-tool"].manifest)
+    ctx.components.mount_component(artifact_map["write-file-tool"].manifest)
+    ctx.components.mount_component(artifact_map["edit-file-tool"].manifest)
+    ctx.components.mount_component(
         artifact_map["truncation-guard"].manifest,
         max_lines=3,
         max_bytes=100,
@@ -131,8 +131,8 @@ async def test_end_to_end_marketplace_streaming_and_compaction(
     artifacts = scan_components(REPO_ROOT)
     artifact_map = {a.name: a for a in artifacts}
 
-    ctx.plugins.mount_plugin(artifact_map["bash-tool"].manifest)
-    ctx.plugins.mount_plugin(artifact_map["compaction-guard"].manifest)
+    ctx.components.mount_component(artifact_map["bash-tool"].manifest)
+    ctx.components.mount_component(artifact_map["compaction-guard"].manifest)
 
     # Mock SSE stream responses
     tool_args = json.dumps({"command": "echo 'Stream test'"})
@@ -243,7 +243,7 @@ async def test_end_to_end_pollinations_anonymous_turn(tmp_path: Path) -> None:
     artifact_map = {a.name: a for a in artifacts}
 
     # Mount provider directly from marketplace artifact
-    ctx.plugins.mount_plugin(artifact_map["pollinations-provider"].manifest)
+    ctx.components.mount_component(artifact_map["pollinations-provider"].manifest)
     await ctx.flush()
 
     captured_headers: dict = {}
@@ -296,19 +296,19 @@ async def test_fs_components_mount_and_unmount_independently(tmp_path: Path) -> 
     artifact_map = {a.name: a for a in artifacts}
 
     # Mount only read-file-tool (read-only sandbox persona)
-    ctx.plugins.mount_plugin(artifact_map["read-file-tool"].manifest)
+    ctx.components.mount_component(artifact_map["read-file-tool"].manifest)
     await ctx.flush()
     assert ctx.tools.get("read_file") is not None
     assert ctx.tools.get("write_file") is None
     assert ctx.tools.get("edit_file") is None
 
     # Mount write-file-tool
-    ctx.plugins.mount_plugin(artifact_map["write-file-tool"].manifest)
+    ctx.components.mount_component(artifact_map["write-file-tool"].manifest)
     await ctx.flush()
     assert ctx.tools.get("write_file") is not None
 
     # Unmount write-file-tool; read-file-tool remains mounted
-    await ctx.plugins.unmount_plugin("write-file-tool")
+    await ctx.components.unmount_component("write-file-tool")
     await ctx.flush()
     assert ctx.tools.get("write_file") is None
     assert ctx.tools.get("read_file") is not None

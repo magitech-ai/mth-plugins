@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 from anima import Context
-from magitech_harness.plugins.layers import ConfigLayer
+from magitech_harness.components.layers import ConfigLayer
 from magitech_harness.system_prompt.service import SystemPromptService
 
 from mth_plugins.bridges.steering.service import SteeringBridgeService

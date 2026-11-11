@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
-from magitech_harness.plugins.layers import ConfigLayer
+from magitech_harness.components.layers import ConfigLayer
 
 from mth_plugins.bridges.steering.collector import (
     LayerSteeringDocument,

@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 from anima import Context
-from magitech_harness.plugins.layers import ConfigLayer
+from magitech_harness.components.layers import ConfigLayer
 from magitech_harness.session.events import ToolCallData
 from magitech_harness.shell.service import ShellResult
 from magitech_harness.system_prompt.service import SystemPromptService
