@@ -8,7 +8,7 @@ resolution-markers = [
 
 [[package]]
 name = "anima"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "../anima" }
 dependencies = [
     { name = "pydantic" },
@@ -404,7 +404,7 @@ wheels = [
 
 [[package]]
 name = "magitech-harness"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "../magitech-harness" }
 dependencies = [
     { name = "anima" },
@@ -430,7 +430,7 @@ dev = [
 
 [[package]]
 name = "mth-plugins"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "anima" },
