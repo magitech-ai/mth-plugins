@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "mth-plugins"
 version = "0.2.0"
-description = "Official portable plugins and marketplace catalog for Magitech Harness"
+description = "Official portable components and marketplace catalog for Magitech Harness"
 readme = "README.md"
 requires-python = ">=3.12"
 authors = [

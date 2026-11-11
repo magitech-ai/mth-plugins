@@ -5,11 +5,11 @@
   "types": [
     "Tool"
   ],
-  "entry_point": "plugin.py:apply",
+  "entry_point": "component.py:apply",
   "requires_services": [
     "sessions"
   ],
-  "recommended_plugins": [
+  "recommended_components": [
     "sandbox-ladder"
   ],
   "enabled": true

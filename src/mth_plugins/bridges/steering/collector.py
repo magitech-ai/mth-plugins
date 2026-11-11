@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from magitech_harness.plugins.layers import ConfigLayer
+from magitech_harness.components.layers import ConfigLayer
 
 STEERING_FILENAMES: tuple[str, ...] = ("AGENTS.md", "CLAUDE.md", ".agents.md")
 

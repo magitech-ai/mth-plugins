@@ -1,7 +1,7 @@
-"""Subagent orchestration tool plugin package."""
+"""Subagent orchestration tool component package."""
 
+from mth_plugins.tools.subagent.component import apply
 from mth_plugins.tools.subagent.manager import SubagentManager
-from mth_plugins.tools.subagent.plugin import apply
 from mth_plugins.tools.subagent.types import (
     RESEARCH_PRESET_TOOLS,
     SubagentRecord,

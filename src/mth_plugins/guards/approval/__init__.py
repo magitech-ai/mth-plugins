@@ -1,7 +1,7 @@
-"""Approval guard plugin package."""
+"""Approval guard component package."""
 
+from mth_plugins.guards.approval.component import apply
 from mth_plugins.guards.approval.guard import ApprovalGuard
-from mth_plugins.guards.approval.plugin import apply
 from mth_plugins.guards.approval.policy import ApprovalPolicy
 from mth_plugins.guards.approval.types import (
     ApprovalDecision,

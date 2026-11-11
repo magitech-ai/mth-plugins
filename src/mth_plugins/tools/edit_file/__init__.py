@@ -1,7 +1,7 @@
-"""Edit file tool plugin package."""
+"""Edit file tool component package."""
 
+from mth_plugins.tools.edit_file.component import apply
 from mth_plugins.tools.edit_file.edit_file import handle_edit_file
-from mth_plugins.tools.edit_file.plugin import apply
 
 __all__ = [
     "apply",

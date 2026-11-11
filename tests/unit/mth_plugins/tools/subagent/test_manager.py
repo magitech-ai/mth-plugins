@@ -64,7 +64,7 @@ def parent_ctx(tmp_path: Path) -> Context:
 async def test_subagent_manager_invoke_sync_and_presets(
     parent_ctx: Context, tmp_path: Path
 ) -> None:
-    manager = SubagentManager(parent_ctx, subsessions_dir=tmp_path / "subsessions")
+    manager = SubagentManager(parent_ctx, {"subsessions_dir": tmp_path / "subsessions"})
 
     # 1. Research preset: automatically restricts to research tools
     with patch(
@@ -112,7 +112,7 @@ async def test_subagent_manager_invoke_sync_and_presets(
 async def test_subagent_manager_invoke_background_and_send_message(
     parent_ctx: Context, tmp_path: Path
 ) -> None:
-    manager = SubagentManager(parent_ctx, subsessions_dir=tmp_path / "subsessions")
+    manager = SubagentManager(parent_ctx, {"subsessions_dir": tmp_path / "subsessions"})
 
     loop_instances: list[MockLoop] = []
 
@@ -148,8 +148,10 @@ async def test_subagent_manager_branch_workspace_git(
     (tmp_path / ".git").mkdir()
     manager = SubagentManager(
         parent_ctx,
-        subsessions_dir=tmp_path / "subsessions",
-        workspace_root=tmp_path,
+        {
+            "subsessions_dir": tmp_path / "subsessions",
+            "workspace_root": tmp_path,
+        },
     )
 
     # 1. Successful worktree creation
@@ -195,8 +197,10 @@ async def test_subagent_manager_branch_workspace_git(
     non_git_ws.mkdir()
     manager_nongit = SubagentManager(
         parent_ctx,
-        subsessions_dir=tmp_path / "subsessions",
-        workspace_root=non_git_ws,
+        {
+            "subsessions_dir": tmp_path / "subsessions",
+            "workspace_root": non_git_ws,
+        },
     )
     with patch(
         "mth_plugins.tools.subagent.manager.AgentLoopService",
@@ -246,7 +250,7 @@ async def test_subagent_manager_branch_workspace_git(
 async def test_subagent_manager_manage_and_errors(
     parent_ctx: Context, tmp_path: Path
 ) -> None:
-    manager = SubagentManager(parent_ctx, subsessions_dir=tmp_path / "subsessions")
+    manager = SubagentManager(parent_ctx, {"subsessions_dir": tmp_path / "subsessions"})
 
     # 1. Send message to nonexistent subagent
     with pytest.raises(ValueError, match="does not exist"):
@@ -302,7 +306,7 @@ async def test_subagent_manager_manage_and_errors(
 async def test_subagent_cancellation_cascade(
     parent_ctx: Context, tmp_path: Path
 ) -> None:
-    manager = SubagentManager(parent_ctx, subsessions_dir=tmp_path / "subsessions")
+    manager = SubagentManager(parent_ctx, {"subsessions_dir": tmp_path / "subsessions"})
 
     parent_signal = AbortSignal()
     with patch(
@@ -326,7 +330,7 @@ async def test_subagent_empty_context_and_worktree_cleanup_failure(
     tmp_path: Path,
 ) -> None:
     empty_ctx = Context()
-    manager = SubagentManager(empty_ctx, subsessions_dir=tmp_path / "subsessions")
+    manager = SubagentManager(empty_ctx, {"subsessions_dir": tmp_path / "subsessions"})
 
     with patch(
         "mth_plugins.tools.subagent.manager.AgentLoopService",
@@ -349,7 +353,7 @@ async def test_subagent_empty_context_and_worktree_cleanup_failure(
 async def test_subagent_terminate_running_task_and_missing_record(
     parent_ctx: Context, tmp_path: Path
 ) -> None:
-    manager = SubagentManager(parent_ctx, subsessions_dir=tmp_path / "subsessions")
+    manager = SubagentManager(parent_ctx, {"subsessions_dir": tmp_path / "subsessions"})
 
     # Background task that sleeps
     async def _long_turn(*args: Any, **kwargs: Any) -> None:

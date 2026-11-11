@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 from anima import Context
-from magitech_harness.plugins.layers import ConfigLayer
+from magitech_harness.components.layers import ConfigLayer
 from magitech_harness.system_prompt.service import SystemPromptService
 
 from mth_plugins.bridges.steering.service import SteeringBridgeService
@@ -14,7 +14,7 @@ from mth_plugins.bridges.steering.service import SteeringBridgeService
 
 async def test_steering_service_lifecycle(tmp_path: Path) -> None:
     ctx = Context()
-    ctx.plugin(SystemPromptService)
+    ctx.use(SystemPromptService)
     await ctx.flush()
 
     # Create dummy steering files
@@ -28,7 +28,7 @@ async def test_steering_service_lifecycle(tmp_path: Path) -> None:
     ]
     ctx._register_service("layers", mock_layers)
 
-    fiber = ctx.plugin(SteeringBridgeService)
+    fiber = ctx.use(SteeringBridgeService)
     await ctx.flush()
     service: SteeringBridgeService = ctx.steering
 
@@ -49,7 +49,7 @@ async def test_steering_service_lifecycle(tmp_path: Path) -> None:
     assert "# Steering Guidelines" not in rendered_after
 
     # Test disposing fiber when prompt_disposer is already None
-    fiber2 = ctx.plugin(SteeringBridgeService)
+    fiber2 = ctx.use(SteeringBridgeService)
     await ctx.flush()
     await fiber2.dispose()
 

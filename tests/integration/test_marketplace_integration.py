@@ -11,19 +11,19 @@ import pytest
 from magitech_harness import create_harness
 from magitech_harness.session.events import EventType
 
-from mth_plugins.index import REPO_ROOT, scan_plugins
+from mth_plugins.index import REPO_ROOT, scan_components
 from mth_plugins.providers.openrouter.provider import OpenRouterProvider
 
 
 @pytest.mark.asyncio
 async def test_end_to_end_marketplace_turn(tmp_path: Path) -> None:
-    """Verifies complete end-to-end turn using marketplace plugins."""
+    """Verifies complete end-to-end turn using marketplace components."""
     # 1. Initialize Harness
     ctx = create_harness(storage_dir=tmp_path / "sessions")
     await ctx.flush()
 
-    # 2. Discover plugins from marketplace repo root
-    artifacts = scan_plugins(REPO_ROOT)
+    # 2. Discover components from marketplace repo root
+    artifacts = scan_components(REPO_ROOT)
     artifact_map = {a.name: a for a in artifacts}
     assert "openrouter-provider" in artifact_map
     assert "pollinations-provider" in artifact_map
@@ -35,11 +35,11 @@ async def test_end_to_end_marketplace_turn(tmp_path: Path) -> None:
     assert "compaction-guard" in artifact_map
 
     # 3. Mount tools and guardrail from marketplace
-    ctx.plugins.mount_plugin(artifact_map["bash-tool"].manifest)
-    ctx.plugins.mount_plugin(artifact_map["read-file-tool"].manifest)
-    ctx.plugins.mount_plugin(artifact_map["write-file-tool"].manifest)
-    ctx.plugins.mount_plugin(artifact_map["edit-file-tool"].manifest)
-    ctx.plugins.mount_plugin(
+    ctx.components.mount_component(artifact_map["bash-tool"].manifest)
+    ctx.components.mount_component(artifact_map["read-file-tool"].manifest)
+    ctx.components.mount_component(artifact_map["write-file-tool"].manifest)
+    ctx.components.mount_component(artifact_map["edit-file-tool"].manifest)
+    ctx.components.mount_component(
         artifact_map["truncation-guard"].manifest,
         max_lines=3,
         max_bytes=100,
@@ -128,11 +128,11 @@ async def test_end_to_end_marketplace_streaming_and_compaction(
     ctx = create_harness(storage_dir=tmp_path / "sessions")
     await ctx.flush()
 
-    artifacts = scan_plugins(REPO_ROOT)
+    artifacts = scan_components(REPO_ROOT)
     artifact_map = {a.name: a for a in artifacts}
 
-    ctx.plugins.mount_plugin(artifact_map["bash-tool"].manifest)
-    ctx.plugins.mount_plugin(artifact_map["compaction-guard"].manifest)
+    ctx.components.mount_component(artifact_map["bash-tool"].manifest)
+    ctx.components.mount_component(artifact_map["compaction-guard"].manifest)
 
     # Mock SSE stream responses
     tool_args = json.dumps({"command": "echo 'Stream test'"})
@@ -239,11 +239,11 @@ async def test_end_to_end_pollinations_anonymous_turn(tmp_path: Path) -> None:
     ctx = create_harness(storage_dir=tmp_path / "sessions")
     await ctx.flush()
 
-    artifacts = scan_plugins(REPO_ROOT)
+    artifacts = scan_components(REPO_ROOT)
     artifact_map = {a.name: a for a in artifacts}
 
     # Mount provider directly from marketplace artifact
-    ctx.plugins.mount_plugin(artifact_map["pollinations-provider"].manifest)
+    ctx.components.mount_component(artifact_map["pollinations-provider"].manifest)
     await ctx.flush()
 
     captured_headers: dict = {}
@@ -287,28 +287,28 @@ async def test_end_to_end_pollinations_anonymous_turn(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_fs_plugins_mount_and_unmount_independently(tmp_path: Path) -> None:
-    """Verifies read-only sandboxing and independent plugin lifecycle."""
+async def test_fs_components_mount_and_unmount_independently(tmp_path: Path) -> None:
+    """Verifies read-only sandboxing and independent component lifecycle."""
     ctx = create_harness(storage_dir=tmp_path / "sessions")
     await ctx.flush()
 
-    artifacts = scan_plugins(REPO_ROOT)
+    artifacts = scan_components(REPO_ROOT)
     artifact_map = {a.name: a for a in artifacts}
 
     # Mount only read-file-tool (read-only sandbox persona)
-    ctx.plugins.mount_plugin(artifact_map["read-file-tool"].manifest)
+    ctx.components.mount_component(artifact_map["read-file-tool"].manifest)
     await ctx.flush()
     assert ctx.tools.get("read_file") is not None
     assert ctx.tools.get("write_file") is None
     assert ctx.tools.get("edit_file") is None
 
     # Mount write-file-tool
-    ctx.plugins.mount_plugin(artifact_map["write-file-tool"].manifest)
+    ctx.components.mount_component(artifact_map["write-file-tool"].manifest)
     await ctx.flush()
     assert ctx.tools.get("write_file") is not None
 
     # Unmount write-file-tool; read-file-tool remains mounted
-    await ctx.plugins.unmount_plugin("write-file-tool")
+    await ctx.components.unmount_component("write-file-tool")
     await ctx.flush()
     assert ctx.tools.get("write_file") is None
     assert ctx.tools.get("read_file") is not None

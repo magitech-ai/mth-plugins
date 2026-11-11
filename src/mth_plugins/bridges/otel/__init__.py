@@ -1,6 +1,6 @@
-"""OpenTelemetry bridge plugin package."""
+"""OpenTelemetry bridge component package."""
 
-from mth_plugins.bridges.otel.plugin import apply
+from mth_plugins.bridges.otel.component import apply
 from mth_plugins.bridges.otel.tracer import OtelTracerService, SpanRecord
 
 __all__ = [

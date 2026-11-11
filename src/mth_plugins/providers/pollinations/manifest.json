@@ -2,7 +2,7 @@
   "name": "pollinations-provider",
   "version": "0.1.0",
   "description": "Free anonymous LLM model provider via Pollinations for Magitech Harness",
-  "entry_point": "plugin.py:apply",
+  "entry_point": "component.py:apply",
   "types": [
     "Provider"
   ],

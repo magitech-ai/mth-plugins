@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Any
 
 from anima import Context, Disposer, Service
 
@@ -18,15 +19,11 @@ logger = logging.getLogger("mth_plugins.bridges.steering")
 class SteeringBridgeService(Service):
     """Service managing discovery and prompt mounting of hierarchical steering docs."""
 
-    def __init__(
-        self,
-        ctx: Context,
-        project_path: Path | str | None = None,
-        agent_name: str | None = None,
-    ) -> None:
+    def __init__(self, ctx: Context, config: dict[str, Any] | None = None) -> None:
         super().__init__(ctx, "steering")
-        self.project_path = project_path
-        self.agent_name = agent_name
+        cfg = config or {}
+        self.project_path = cfg.get("project_path")
+        self.agent_name = cfg.get("agent_name")
         self._prompt_disposer: Disposer | None = None
 
         def _cleanup() -> None:

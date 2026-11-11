@@ -2,7 +2,7 @@
   "name": "approval-guard",
   "version": "0.1.0",
   "description": "Layered fail-closed approval policy guardrail and authorization broker for Magitech Harness",
-  "entry_point": "plugin.py:apply",
+  "entry_point": "component.py:apply",
   "types": [
     "Guard"
   ],

@@ -1,4 +1,4 @@
-"""Unit tests for bash tool and plugin."""
+"""Unit tests for bash tool and component."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from magitech_harness.shell.service import LocalShellService
 from magitech_harness.tools.service import ToolService
 
 from mth_plugins.tools.bash.bash import handle_bash
-from mth_plugins.tools.bash.plugin import apply
+from mth_plugins.tools.bash.component import apply
 
 
 @pytest.mark.asyncio
@@ -100,7 +100,7 @@ async def test_handle_bash_timeout_kill_oserror() -> None:
 async def test_handle_bash_with_ctx_shell_and_spill(tmp_path: Path) -> None:
     """Verifies execution via ctx.shell and automatic spill-to-disk on truncation."""
     ctx = Context()
-    ctx.plugin(LocalShellService)
+    ctx.use(LocalShellService)
     await ctx.flush()
 
     spill_dir = tmp_path / "spill"
@@ -153,7 +153,7 @@ async def test_handle_bash_with_ctx_shell_and_spill(tmp_path: Path) -> None:
 async def test_handle_bash_spill_oserror_suppressed(tmp_path: Path) -> None:
     """Verifies spill directory creation error is suppressed cleanly."""
     ctx = Context()
-    ctx.plugin(LocalShellService)
+    ctx.use(LocalShellService)
     await ctx.flush()
 
     with patch.object(Path, "mkdir", side_effect=OSError("permission denied")):
@@ -166,12 +166,12 @@ async def test_handle_bash_spill_oserror_suppressed(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_bash_plugin_integration() -> None:
-    """Verifies mounting bash plugin onto Context."""
+async def test_bash_component_integration() -> None:
+    """Verifies mounting bash component onto Context."""
     ctx = Context()
-    ctx.plugin(LocalShellService)
-    ctx.plugin(ToolService)
-    ctx.plugin(apply)
+    ctx.use(LocalShellService)
+    ctx.use(ToolService)
+    ctx.use(apply)
     await ctx.flush()
 
     assert ctx.tools.get("bash") is not None

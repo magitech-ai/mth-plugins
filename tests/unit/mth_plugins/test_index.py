@@ -6,41 +6,41 @@ import json
 from pathlib import Path
 
 import pytest
-from magitech_harness.plugins.manifest import PluginManifest
+from magitech_harness.components.manifest import ComponentManifest
 
 from mth_plugins.index import (
     REPO_ROOT,
-    PluginArtifact,
+    ComponentArtifact,
     _determine_kind,
     build_catalog,
-    find_plugin,
+    find_component,
     load_index,
-    scan_plugins,
+    scan_components,
 )
 
 
-def test_plugin_artifact_properties(tmp_path: Path) -> None:
+def test_component_artifact_properties(tmp_path: Path) -> None:
     """Verifies relative_path and entry_point_path resolution."""
-    manifest = PluginManifest(
-        name="test-plugin",
+    manifest = ComponentManifest(
+        name="test-component",
         version="1.0.0",
-        entry_point="plugin.py:apply",
+        entry_point="component.py:apply",
     )
-    plugin_dir = tmp_path / "test_plugin"
-    art = PluginArtifact(
-        name="test-plugin",
+    component_dir = tmp_path / "test_component"
+    art = ComponentArtifact(
+        name="test-component",
         kind="tool",
-        path=plugin_dir,
+        path=component_dir,
         manifest=manifest,
     )
 
     # Outside REPO_ROOT: falls back to as_posix()
-    assert art.relative_path == plugin_dir.as_posix()
-    assert art.entry_point_path == plugin_dir / "plugin.py"
+    assert art.relative_path == component_dir.as_posix()
+    assert art.entry_point_path == component_dir / "component.py"
 
     # Inside REPO_ROOT
     inside_dir = REPO_ROOT / "src" / "mth_plugins" / "tools" / "bash"
-    art_inside = PluginArtifact(
+    art_inside = ComponentArtifact(
         name="bash-tool",
         kind="tool",
         path=inside_dir,
@@ -52,11 +52,11 @@ def test_plugin_artifact_properties(tmp_path: Path) -> None:
 def test_determine_kind(tmp_path: Path) -> None:
     """Verifies kind detection logic across all branches."""
     # 1. "providers" in parts
-    m1 = PluginManifest(name="p1", version="1.0", entry_point="p.py")
+    m1 = ComponentManifest(name="p1", version="1.0", entry_point="p.py")
     assert _determine_kind(tmp_path / "providers" / "p1", m1) == "provider"
 
     # 2. "Provider" in types
-    m2 = PluginManifest(
+    m2 = ComponentManifest(
         name="p2", version="1.0", entry_point="p.py", types=["Provider"]
     )
     assert _determine_kind(tmp_path / "custom" / "p2", m2) == "provider"
@@ -65,35 +65,43 @@ def test_determine_kind(tmp_path: Path) -> None:
     assert _determine_kind(tmp_path / "guards" / "g1", m1) == "guard"
 
     # 4. "Guard" in types
-    m3 = PluginManifest(name="g2", version="1.0", entry_point="p.py", types=["Guard"])
+    m3 = ComponentManifest(
+        name="g2", version="1.0", entry_point="p.py", types=["Guard"]
+    )
     assert _determine_kind(tmp_path / "custom" / "g2", m3) == "guard"
 
     # 5. "tools" in parts
     assert _determine_kind(tmp_path / "tools" / "t1", m1) == "tool"
 
     # 6. "Tool" in types
-    m4 = PluginManifest(name="t2", version="1.0", entry_point="p.py", types=["Tool"])
+    m4 = ComponentManifest(name="t2", version="1.0", entry_point="p.py", types=["Tool"])
     assert _determine_kind(tmp_path / "custom" / "t2", m4) == "tool"
 
     # 7. "bridges" in parts and "Bridge" in types
     assert _determine_kind(tmp_path / "bridges" / "b1", m1) == "bridge"
-    m5 = PluginManifest(name="b2", version="1.0", entry_point="p.py", types=["Bridge"])
+    m5 = ComponentManifest(
+        name="b2", version="1.0", entry_point="p.py", types=["Bridge"]
+    )
     assert _determine_kind(tmp_path / "custom" / "b2", m5) == "bridge"
 
     # 8. "sandbox" in parts and "Sandbox" in types
     assert _determine_kind(tmp_path / "sandbox" / "s1", m1) == "sandbox"
-    m6 = PluginManifest(name="s2", version="1.0", entry_point="p.py", types=["Sandbox"])
+    m6 = ComponentManifest(
+        name="s2", version="1.0", entry_point="p.py", types=["Sandbox"]
+    )
     assert _determine_kind(tmp_path / "custom" / "s2", m6) == "sandbox"
 
     # 9. "sessions" in parts and "Session" in types
     assert _determine_kind(tmp_path / "sessions" / "sess1", m1) == "session"
-    m_sess = PluginManifest(
+    m_sess = ComponentManifest(
         name="sess2", version="1.0", entry_point="p.py", types=["Session"]
     )
     assert _determine_kind(tmp_path / "custom" / "sess2", m_sess) == "session"
 
     # 10. Other custom type
-    m7 = PluginManifest(name="c1", version="1.0", entry_point="p.py", types=["Custom"])
+    m7 = ComponentManifest(
+        name="c1", version="1.0", entry_point="p.py", types=["Custom"]
+    )
     assert _determine_kind(tmp_path / "other" / "c1", m7) == "custom"
 
     # 11. No type, not in special directory
@@ -115,8 +123,8 @@ def test_load_index(tmp_path: Path) -> None:
         load_index(tmp_path / "nonexistent.json")
 
 
-def test_scan_and_find_plugins(tmp_path: Path) -> None:
-    """Verifies scanning plugins, filtering out invalid or ignored directories."""
+def test_scan_and_find_components(tmp_path: Path) -> None:
+    """Verifies scanning components, filtering out invalid or ignored directories."""
     # Provider
     prov_dir = tmp_path / "providers" / "my_prov"
     prov_dir.mkdir(parents=True)
@@ -125,7 +133,7 @@ def test_scan_and_find_plugins(tmp_path: Path) -> None:
             {
                 "name": "my-prov",
                 "version": "0.1.0",
-                "entry_point": "plugin.py:apply",
+                "entry_point": "component.py:apply",
                 "types": ["Provider"],
             }
         ),
@@ -140,7 +148,7 @@ def test_scan_and_find_plugins(tmp_path: Path) -> None:
             {
                 "name": "my-bridge",
                 "version": "0.1.0",
-                "entry_point": "plugin.py",
+                "entry_point": "component.py",
                 "types": ["Bridge"],
             }
         ),
@@ -155,7 +163,7 @@ def test_scan_and_find_plugins(tmp_path: Path) -> None:
             {
                 "name": "my-ext",
                 "version": "0.1.0",
-                "entry_point": "plugin.py",
+                "entry_point": "component.py",
                 "types": ["Extension"],
             }
         ),
@@ -172,18 +180,18 @@ def test_scan_and_find_plugins(tmp_path: Path) -> None:
     bad_dir.mkdir()
     (bad_dir / "manifest.json").write_text("{malformed", encoding="utf-8")
 
-    artifacts = scan_plugins(tmp_path)
+    artifacts = scan_components(tmp_path)
     names = {a.name for a in artifacts}
     assert "my-prov" in names
     assert "my-bridge" in names
     assert "my-ext" in names
     assert len(artifacts) == 3
 
-    found = find_plugin("my-prov", root=tmp_path)
+    found = find_component("my-prov", root=tmp_path)
     assert found is not None
     assert found.kind == "provider"
 
-    assert find_plugin("nonexistent", root=tmp_path) is None
+    assert find_component("nonexistent", root=tmp_path) is None
 
     catalog = build_catalog(tmp_path)
     assert "my-prov" in catalog["providers"]

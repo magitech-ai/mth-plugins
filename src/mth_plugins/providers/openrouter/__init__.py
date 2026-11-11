@@ -1,6 +1,6 @@
-"""OpenRouter provider plugin package."""
+"""OpenRouter provider component package."""
 
-from mth_plugins.providers.openrouter.plugin import apply
+from mth_plugins.providers.openrouter.component import apply
 from mth_plugins.providers.openrouter.provider import OpenRouterProvider
 
 __all__ = ["OpenRouterProvider", "apply"]

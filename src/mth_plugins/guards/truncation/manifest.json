@@ -2,7 +2,7 @@
   "name": "truncation-guard",
   "version": "0.1.0",
   "description": "Output truncation guardrail (tools/post-execute waterfall) for Magitech Harness",
-  "entry_point": "plugin.py:apply",
+  "entry_point": "component.py:apply",
   "types": [
     "Guard"
   ],

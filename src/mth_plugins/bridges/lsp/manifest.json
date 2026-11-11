@@ -2,7 +2,7 @@
   "name": "lsp-bridge",
   "version": "0.1.0",
   "description": "Language Server Protocol (LSP) diagnostics and code intelligence bridge for Magitech Harness",
-  "entry_point": "plugin.py:apply",
+  "entry_point": "component.py:apply",
   "types": [
     "Bridge",
     "Tool"

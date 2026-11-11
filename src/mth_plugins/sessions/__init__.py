@@ -1,1 +1,1 @@
-"""Sessions package grouping search and titling plugins."""
+"""Sessions package grouping search and titling components."""

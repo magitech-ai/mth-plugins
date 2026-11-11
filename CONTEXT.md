@@ -1,4 +1,4 @@
-# MTH Plugins
+# MTH Components
 
 The official extensible marketplace containing pluggable model providers, domain tools, guardrails, and compaction policies for the Magitech Harness.
 
@@ -6,22 +6,22 @@ The official extensible marketplace containing pluggable model providers, domain
 
 ### Marketplace & Distribution
 
-**Plugin**:
+**Component**:
 A packaged Python module adhering to the manifest specification that mounts capabilities onto an Anima context.
 _Avoid_: Extension, addon, module
 
 **Manifest**:
-A JSON document (`manifest.json`) declaring a plugin's identity, version, classification types, entry point, and dependencies.
+A JSON document (`manifest.json`) declaring a component's identity, version, classification types, entry point, and dependencies.
 _Avoid_: Spec, descriptor, config
 
 **Catalog**:
-The centralized index (`index.json`) mapping plugin names to their manifest locations and metadata.
+The centralized index (`index.json`) mapping component names to their manifest locations and metadata.
 _Avoid_: Registry, marketplace database, store
 
 ### Capability Seams
 
 **Provider**:
-A plugin that implements the `LLMProvider` protocol to interface with external model APIs for text generation and streaming.
+A component that implements the `LLMProvider` protocol to interface with external model APIs for text generation and streaming.
 _Avoid_: Adapter, model backend, driver
 
 **Tool**:
@@ -41,8 +41,8 @@ The internal runtime parameters injected into a tool handler at execution time a
 _Avoid_: Tool state, execution payload
 
 **Service Dependency**:
-A required capability contract declared by a plugin via `inject` and `requires_services`, decoupled from concrete vendor package IDs.
-_Avoid_: Plugin requirement, package import
+A required capability contract declared by a component via `inject` and `requires_services`, decoupled from concrete vendor package IDs.
+_Avoid_: Component requirement, package import
 
 **CodeAct**:
 Direct execution of model-synthesized Python snippets with AST write-protection for registered tools, auto-`await` dispatching, and persistent session locals.
@@ -70,11 +70,11 @@ _Avoid_: Grant duration, timeout
 
 **Language Server Bridge**:
 A background JSON-RPC 2.0 stdio client translating file mutations (`edit`, `write`) into debounced compiler diagnostics and providing semantic definition/reference lookup.
-_Avoid_: Linter plugin, compiler checker
+_Avoid_: Linter component, compiler checker
 
 **Distributed Tracing Bridge**:
 An OpenTelemetry instrumentation layer capturing turn lifecycles, provider requests, and tool executions as hierarchical trace spans.
-_Avoid_: Logging plugin, APM hook
+_Avoid_: Logging component, APM hook
 
 ### Delegation & Multi-Agent
 
@@ -93,12 +93,12 @@ _Avoid_: Child toolset, delegation api
 ### Interception & Transformations
 
 **Guard**:
-A plugin that intercepts turns or messages via Anima event waterfalls to enforce boundaries, safety, or token limits.
+A component that intercepts turns or messages via Anima event waterfalls to enforce boundaries, safety, or token limits.
 _Avoid_: Middleware, filter, interceptor
 
 **Compaction Guard**:
-A guard plugin that monitors token pressure and triggers conversational history summarization at balanced cut points.
-_Avoid_: Pruning plugin, context reducer
+A guard component that monitors token pressure and triggers conversational history summarization at balanced cut points.
+_Avoid_: Pruning component, context reducer
 
 **Truncation**:
 The deterministic clipping of oversized prompt context or tool output text to protect token budgets.

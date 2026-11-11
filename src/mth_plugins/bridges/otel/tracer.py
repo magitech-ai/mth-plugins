@@ -51,9 +51,9 @@ class SpanRecord:
 class OtelTracerService(Service):
     """Tracer service providing OpenTelemetry GenAI spans and observability."""
 
-    def __init__(self, ctx: Context, service_name: str = "magitech") -> None:
+    def __init__(self, ctx: Context, config: dict[str, Any] | None = None) -> None:
         super().__init__(ctx, "otel")
-        self.service_name = service_name
+        self.service_name = (config or {}).get("service_name") or "magitech"
         self.recorded_spans: list[SpanRecord] = []
         self._active_spans: dict[str, SpanRecord] = {}
 

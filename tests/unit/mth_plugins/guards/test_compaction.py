@@ -1,4 +1,4 @@
-"""Unit tests for context compaction guard plugin."""
+"""Unit tests for context compaction guard component."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from mth_plugins.guards.compaction.compaction import (
     find_safe_cut_index,
     summarize_events,
 )
-from mth_plugins.guards.compaction.plugin import apply
+from mth_plugins.guards.compaction.component import apply
 
 
 def _make_event(
@@ -168,7 +168,7 @@ async def test_summarize_events_offline() -> None:
 async def test_summarize_events_with_llm() -> None:
     """Verifies LLM-based summarization when LLM service is available."""
     ctx = Context()
-    ctx.plugin(LLMService)
+    ctx.use(LLMService)
     await ctx.flush()
 
     mock_provider = MockLLMProvider(
@@ -187,7 +187,7 @@ async def test_summarize_events_with_llm() -> None:
 async def test_summarize_events_with_llm_failure_fallback() -> None:
     """Verifies graceful fallback to offline summary if LLM call fails."""
     ctx = Context()
-    ctx.plugin(LLMService)
+    ctx.use(LLMService)
     await ctx.flush()
 
     class FailingProvider:
@@ -207,7 +207,7 @@ async def test_summarize_events_with_llm_failure_fallback() -> None:
 async def test_compact_session_success() -> None:
     """Verifies compacting session creates a COMPACTION event and folds history."""
     ctx = Context()
-    ctx.plugin(SessionService)
+    ctx.use(SessionService)
     await ctx.flush()
 
     session = ctx.sessions.create("sess_compaction_1")
@@ -241,7 +241,7 @@ async def test_compact_session_success() -> None:
 async def test_compact_session_not_compacted() -> None:
     """Verifies compact_session returns compacted=False when history is too short."""
     ctx = Context()
-    ctx.plugin(SessionService)
+    ctx.use(SessionService)
     await ctx.flush()
 
     session = ctx.sessions.create("sess_short")
@@ -253,10 +253,10 @@ async def test_compact_session_not_compacted() -> None:
 
 
 @pytest.mark.asyncio
-async def test_plugin_waterfall_session_compact() -> None:
+async def test_component_waterfall_session_compact() -> None:
     """Verifies session/compact waterfall trigger."""
     ctx = Context()
-    ctx.plugin(SessionService)
+    ctx.use(SessionService)
     await ctx.flush()
 
     apply(ctx)
@@ -286,10 +286,10 @@ async def test_plugin_waterfall_session_compact() -> None:
 
 
 @pytest.mark.asyncio
-async def test_plugin_waterfall_agent_pre_step_pressure() -> None:
+async def test_component_waterfall_agent_pre_step_pressure() -> None:
     """Verifies agent/pre-step waterfall triggers compaction on token pressure."""
     ctx = Context()
-    ctx.plugin(SessionService)
+    ctx.use(SessionService)
     await ctx.flush()
 
     # Configure very low max_tokens (e.g. 5 tokens) to trigger compaction
@@ -336,7 +336,7 @@ async def test_summarize_events_edge_cases() -> None:
 
     # LLM returning whitespace-only text
     ctx = Context()
-    ctx.plugin(LLMService)
+    ctx.use(LLMService)
     await ctx.flush()
     ctx.llm.register_provider("mock", MockLLMProvider([ModelResponse(text="   ")]))
     summary_empty_llm = await summarize_events([ev_tool_only], ctx=ctx)
@@ -347,7 +347,7 @@ async def test_summarize_events_edge_cases() -> None:
 async def test_compact_session_unbalanced_boundary() -> None:
     """Verifies compact_session when no safe boundary can be found."""
     ctx = Context()
-    ctx.plugin(SessionService)
+    ctx.use(SessionService)
     await ctx.flush()
 
     session = ctx.sessions.create("sess_unbalanced")
@@ -365,10 +365,10 @@ async def test_compact_session_unbalanced_boundary() -> None:
 
 
 @pytest.mark.asyncio
-async def test_plugin_waterfall_agent_pre_step_below_threshold() -> None:
+async def test_component_waterfall_agent_pre_step_below_threshold() -> None:
     """Verifies pre-step does not compact when token estimate is below max."""
     ctx = Context()
-    ctx.plugin(SessionService)
+    ctx.use(SessionService)
     await ctx.flush()
 
     apply(ctx, max_tokens=10000)
@@ -386,7 +386,7 @@ async def test_plugin_waterfall_agent_pre_step_below_threshold() -> None:
 
 
 @pytest.mark.asyncio
-async def test_plugin_waterfall_agent_pre_step_no_session() -> None:
+async def test_component_waterfall_agent_pre_step_no_session() -> None:
     """Verifies agent/pre-step behaves normally when session is not in payload."""
     ctx = Context()
     apply(ctx)

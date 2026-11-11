@@ -16,7 +16,7 @@ def test_session_search_service(tmp_path: Path) -> None:
     SessionService(ctx, {"base_storage_dir": sessions_dir})
 
     db_path = tmp_path / "search.db"
-    service = SessionSearchService(ctx, db_path=db_path)
+    service = SessionSearchService(ctx, {"db_path": db_path})
 
     # 1. Initially empty
     assert service.search("anything") == []
@@ -50,7 +50,7 @@ def test_session_search_service(tmp_path: Path) -> None:
 
     # Index when no directory available
     empty_ctx = Context()
-    empty_svc = SessionSearchService(empty_ctx, db_path=tmp_path / "empty.db")
+    empty_svc = SessionSearchService(empty_ctx, {"db_path": tmp_path / "empty.db"})
     assert empty_svc.index_sessions() == 0
     empty_svc.close()
 

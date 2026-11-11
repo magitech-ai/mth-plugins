@@ -27,7 +27,7 @@ async def test_gate_project_cached_decisions(tmp_path: Path) -> None:
     project_dir = tmp_path / "my_project"
     agents_dir = project_dir / ".agents"
     agents_dir.mkdir(parents=True)
-    (agents_dir / "plugin.json").write_text("{}")
+    (agents_dir / "component.json").write_text("{}")
 
     # 1. Unspecified, prompt_user=False -> returns False
     assert await gate.check_project_trust(project_dir, prompt_user=False) is False

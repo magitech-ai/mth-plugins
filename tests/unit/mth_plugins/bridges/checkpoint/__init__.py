@@ -1,1 +1,1 @@
-"""Tests for checkpoint bridge plugin."""
+"""Tests for checkpoint bridge component."""

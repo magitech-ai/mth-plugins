@@ -40,9 +40,10 @@ DIAGNOSTIC_SEVERITY = {
 class LspService(Service):
     """Central service managing language servers, diagnostics, and code intelligence."""
 
-    def __init__(self, ctx: Context, workspace_root: Path | None = None) -> None:
+    def __init__(self, ctx: Context, config: dict[str, Any] | None = None) -> None:
         super().__init__(ctx, "lsp")
-        self.workspace_root = (workspace_root or Path.cwd()).resolve()
+        cfg = config or {}
+        self.workspace_root = (cfg.get("workspace_root") or Path.cwd()).resolve()
         self._clients: dict[str, LspClient] = {}
 
     def get_server_command(self, ext: str) -> tuple[str, list[str]] | None:
