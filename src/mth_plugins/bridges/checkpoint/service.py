@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from anima import Context, Service
 
@@ -15,17 +15,15 @@ class CheckpointService(Service):
 
     inject: ClassVar[list[str]] = ["sessions"]
 
-    def __init__(
-        self,
-        ctx: Context,
-        checkpoints_root: Path | None = None,
-        workspace_root: Path | None = None,
-    ) -> None:
+    def __init__(self, ctx: Context, config: dict[str, Any] | None = None) -> None:
         super().__init__(ctx, "checkpoints")
+        cfg = config or {}
         self.workspace_root = (
-            workspace_root or getattr(ctx, "workspace_dir", None) or Path.cwd()
+            cfg.get("workspace_root")
+            or getattr(ctx, "workspace_dir", None)
+            or Path.cwd()
         )
-        self.engine = CheckpointEngine(checkpoints_root=checkpoints_root)
+        self.engine = CheckpointEngine(checkpoints_root=cfg.get("checkpoints_root"))
 
     async def capture(
         self,

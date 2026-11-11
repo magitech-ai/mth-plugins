@@ -2,7 +2,7 @@
   "name": "openrouter-provider",
   "version": "0.1.0",
   "description": "Official OpenRouter provider realm for Magitech Harness",
-  "entry_point": "plugin.py:apply",
+  "entry_point": "component.py:apply",
   "types": [
     "Provider"
   ],

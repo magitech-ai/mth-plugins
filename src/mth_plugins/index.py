@@ -1,6 +1,6 @@
 """Marketplace catalog index, validation, and discovery.
 
-Provides indexing and resolution of portable Magitech plugins and profiles.
+Provides indexing and resolution of portable Magitech components and profiles.
 """
 
 from __future__ import annotations
@@ -17,8 +17,8 @@ DEFAULT_INDEX_PATH = REPO_ROOT / "index.json"
 
 
 @dataclass(frozen=True)
-class PluginArtifact:
-    """Represents a discovered marketplace plugin artifact."""
+class ComponentArtifact:
+    """Represents a discovered marketplace component artifact."""
 
     name: str
     kind: str
@@ -35,7 +35,7 @@ class PluginArtifact:
 
     @property
     def entry_point_path(self) -> Path:
-        """Resolves entry point file path relative to plugin directory."""
+        """Resolves entry point file path relative to component directory."""
         entry = self.manifest.entry_point.split(":", 1)[0]
         return self.path / entry
 
@@ -69,8 +69,8 @@ _KIND_MAPPINGS: tuple[tuple[str, str], ...] = (
 )
 
 
-def _determine_kind(plugin_dir: Path, manifest: PluginManifest) -> str:
-    parts = set(plugin_dir.parts)
+def _determine_kind(component_dir: Path, manifest: PluginManifest) -> str:
+    parts = set(component_dir.parts)
     for folder, kind in _KIND_MAPPINGS:
         if folder in parts:
             return kind
@@ -82,17 +82,17 @@ def _determine_kind(plugin_dir: Path, manifest: PluginManifest) -> str:
     return "extension"
 
 
-def scan_plugins(root: Path | None = None) -> list[PluginArtifact]:
+def scan_components(root: Path | None = None) -> list[ComponentArtifact]:
     """Scans the repository for all directories containing manifest.json.
 
     Args:
         root: Root directory to search from. Defaults to REPO_ROOT.
 
     Returns:
-        List of successfully parsed PluginArtifact instances.
+        List of successfully parsed ComponentArtifact instances.
     """
     search_root = root or REPO_ROOT
-    artifacts: list[PluginArtifact] = []
+    artifacts: list[ComponentArtifact] = []
 
     for manifest_path in sorted(search_root.glob("**/manifest.json")):
         # Skip manifests in virtual environments, caches, or build dirs
@@ -108,14 +108,14 @@ def scan_plugins(root: Path | None = None) -> list[PluginArtifact]:
             data["path"] = manifest_path.parent
             manifest = PluginManifest.model_validate(data)
 
-            plugin_dir = manifest_path.parent
-            kind = _determine_kind(plugin_dir, manifest)
+            component_dir = manifest_path.parent
+            kind = _determine_kind(component_dir, manifest)
 
             artifacts.append(
-                PluginArtifact(
+                ComponentArtifact(
                     name=manifest.name,
                     kind=kind,
-                    path=plugin_dir,
+                    path=component_dir,
                     manifest=manifest,
                 )
             )
@@ -126,7 +126,7 @@ def scan_plugins(root: Path | None = None) -> list[PluginArtifact]:
 
 
 def build_catalog(root: Path | None = None) -> dict[str, Any]:
-    """Builds an index catalog dictionary from all scanned plugins.
+    """Builds an index catalog dictionary from all scanned components.
 
     Args:
         root: Root directory to scan.
@@ -134,7 +134,7 @@ def build_catalog(root: Path | None = None) -> dict[str, Any]:
     Returns:
         Structured catalog with 'providers' and 'tools' sections.
     """
-    artifacts = scan_plugins(root)
+    artifacts = scan_components(root)
     catalog: dict[str, Any] = {
         "providers": {},
         "tools": {},
@@ -159,17 +159,17 @@ def build_catalog(root: Path | None = None) -> dict[str, Any]:
     return catalog
 
 
-def find_plugin(name: str, root: Path | None = None) -> PluginArtifact | None:
-    """Finds a plugin artifact by unique name.
+def find_component(name: str, root: Path | None = None) -> ComponentArtifact | None:
+    """Finds a component artifact by unique name.
 
     Args:
-        name: Name of the plugin.
+        name: Name of the component.
         root: Root directory to search from.
 
     Returns:
-        PluginArtifact if found, None otherwise.
+        ComponentArtifact if found, None otherwise.
     """
-    for artifact in scan_plugins(root):
+    for artifact in scan_components(root):
         if artifact.name == name:
             return artifact
     return None

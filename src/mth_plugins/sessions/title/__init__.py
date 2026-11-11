@@ -1,6 +1,6 @@
-"""Session titling plugin package."""
+"""Session titling component package."""
 
-from mth_plugins.sessions.title.plugin import apply
+from mth_plugins.sessions.title.component import apply
 from mth_plugins.sessions.title.service import SessionTitleService
 from mth_plugins.sessions.title.titler import (
     SessionTitleState,

@@ -1,4 +1,4 @@
-"""Unit tests for edit_file tool plugin."""
+"""Unit tests for edit_file tool component."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ from anima import Context
 from magitech_harness.session.events import ToolCallData
 from magitech_harness.tools.service import ToolService
 
+from mth_plugins.tools.edit_file.component import apply
 from mth_plugins.tools.edit_file.edit_file import handle_edit_file
-from mth_plugins.tools.edit_file.plugin import apply
 
 
 @pytest.mark.asyncio
@@ -50,11 +50,11 @@ async def test_handle_edit_file(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_edit_plugin_integration(tmp_path: Path) -> None:
-    """Verifies edit_file plugin mounts and executes via ToolService."""
+async def test_edit_component_integration(tmp_path: Path) -> None:
+    """Verifies edit_file component mounts and executes via ToolService."""
     ctx = Context()
-    ctx.plugin(ToolService)
-    ctx.plugin(apply)
+    ctx.use(ToolService)
+    ctx.use(apply)
     await ctx.flush()
 
     assert ctx.tools.get("edit_file") is not None

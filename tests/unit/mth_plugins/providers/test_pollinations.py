@@ -1,4 +1,4 @@
-"""Unit tests for Pollinations free anonymous provider and plugin."""
+"""Unit tests for Pollinations free anonymous provider and component."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from magitech_harness.agent.cancellation import AbortError, AbortSignal
 from magitech_harness.llm.service import LLMService
 from magitech_harness.llm.types import ModelChunk
 
-from mth_plugins.providers.pollinations.plugin import apply
+from mth_plugins.providers.pollinations.component import apply
 from mth_plugins.providers.pollinations.provider import (
     PollinationsProvider,
     wire_model_id,
@@ -434,8 +434,8 @@ async def test_pollinations_provider_stream_error() -> None:
             pass
 
 
-def test_pollinations_plugin_registration() -> None:
-    """Verifies Pollinations plugin registration in Anima context."""
+def test_pollinations_component_registration() -> None:
+    """Verifies Pollinations component registration in Anima context."""
     ctx = Context()
     ctx.llm = LLMService(ctx)
 
@@ -447,8 +447,8 @@ def test_pollinations_plugin_registration() -> None:
     assert provider.base_url == "https://text.pollinations.ai/openai"
 
 
-def test_pollinations_plugin_integration() -> None:
-    """Verifies Pollinations plugin with custom config options."""
+def test_pollinations_component_integration() -> None:
+    """Verifies Pollinations component with custom config options."""
     ctx = Context()
     ctx.llm = LLMService(ctx)
 

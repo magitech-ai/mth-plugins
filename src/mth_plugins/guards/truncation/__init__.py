@@ -1,6 +1,6 @@
-"""Output truncation guardrail plugin package."""
+"""Output truncation guardrail component package."""
 
-from mth_plugins.guards.truncation.plugin import apply
+from mth_plugins.guards.truncation.component import apply
 from mth_plugins.guards.truncation.truncation import (
     TruncationResult,
     format_size,

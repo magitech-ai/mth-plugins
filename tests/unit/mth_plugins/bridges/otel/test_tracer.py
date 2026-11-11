@@ -30,7 +30,7 @@ def test_span_record_lifecycle() -> None:
 
 def test_tracer_service_turn_spans() -> None:
     ctx = Context()
-    svc = OtelTracerService(ctx, service_name="magitech-test")
+    svc = OtelTracerService(ctx, {"service_name": "magitech-test"})
     assert svc.service_name == "magitech-test"
 
     # Turn span with auto turn_id

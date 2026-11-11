@@ -38,8 +38,8 @@ def _create_dummy_skill(
 
 async def test_skills_service_discovery_and_catalog(tmp_path: Path) -> None:
     ctx = Context()
-    ctx.plugin(ToolService)
-    ctx.plugin(SystemPromptService)
+    ctx.use(ToolService)
+    ctx.use(SystemPromptService)
     await ctx.flush()
 
     service = SkillsBridgeService(ctx)
@@ -63,7 +63,7 @@ async def test_skills_service_discovery_and_catalog(tmp_path: Path) -> None:
 
 async def test_skills_service_activate_tool(tmp_path: Path) -> None:
     ctx = Context()
-    ctx.plugin(ToolService)
+    ctx.use(ToolService)
     await ctx.flush()
 
     service = SkillsBridgeService(ctx)
@@ -97,7 +97,7 @@ async def test_skills_service_activate_tool(tmp_path: Path) -> None:
 
 async def test_skills_service_run_script_tool(tmp_path: Path) -> None:
     ctx = Context()
-    ctx.plugin(ToolService)
+    ctx.use(ToolService)
     await ctx.flush()
 
     service = SkillsBridgeService(ctx)
@@ -197,8 +197,8 @@ async def test_skills_service_run_script_tool(tmp_path: Path) -> None:
 
 async def test_skills_service_layer_discovery_and_disposal(tmp_path: Path) -> None:
     ctx = Context()
-    ctx.plugin(ToolService)
-    ctx.plugin(SystemPromptService)
+    ctx.use(ToolService)
+    ctx.use(SystemPromptService)
     await ctx.flush()
 
     # Create dummy layer directory structure
@@ -216,7 +216,7 @@ async def test_skills_service_layer_discovery_and_disposal(tmp_path: Path) -> No
     ]
     ctx._register_service("layers", mock_layers)
 
-    fiber = ctx.plugin(SkillsBridgeService)
+    fiber = ctx.use(SkillsBridgeService)
     await ctx.flush()
     service: SkillsBridgeService = ctx.skills
 
@@ -251,8 +251,8 @@ async def test_skills_service_edge_cases(tmp_path: Path) -> None:
     service.mount_tools()
 
     # 5. update_prompt_catalog and mount_tools called multiple times
-    ctx.plugin(ToolService)
-    ctx.plugin(SystemPromptService)
+    ctx.use(ToolService)
+    ctx.use(SystemPromptService)
     await ctx.flush()
 
     _create_dummy_skill(tmp_path / "valid", "multi-skill")
@@ -265,6 +265,6 @@ async def test_skills_service_edge_cases(tmp_path: Path) -> None:
 
     # 6. Dispose a fiber where prompt_disposer is None
     ctx_no_prompt = Context()
-    fiber_no_prompt = ctx_no_prompt.plugin(SkillsBridgeService)
+    fiber_no_prompt = ctx_no_prompt.use(SkillsBridgeService)
     await ctx_no_prompt.flush()
     await fiber_no_prompt.dispose()

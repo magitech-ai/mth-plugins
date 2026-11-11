@@ -16,7 +16,7 @@ from mth_plugins.bridges.mcp.service import McpBridgeService
 
 async def test_service_load_servers_and_tool_registration() -> None:
     ctx = Context()
-    ctx.plugin(ToolService)
+    ctx.use(ToolService)
     await ctx.flush()
     service = McpBridgeService(ctx)
 
@@ -84,7 +84,7 @@ async def test_service_load_servers_and_tool_registration() -> None:
 
 async def test_service_connect_failure_handled() -> None:
     ctx = Context()
-    ctx.plugin(ToolService)
+    ctx.use(ToolService)
     service = McpBridgeService(ctx)
 
     config = {"mcpServers": {"broken_server": {"command": "broken-cmd"}}}
@@ -100,7 +100,7 @@ async def test_service_connect_failure_handled() -> None:
 
 async def test_service_load_from_layers(tmp_path: Path) -> None:
     ctx = Context()
-    ctx.plugin(ToolService)
+    ctx.use(ToolService)
     await ctx.flush()
     service = McpBridgeService(ctx)
 
@@ -125,7 +125,7 @@ async def test_service_load_from_layers(tmp_path: Path) -> None:
 
 async def test_service_unsupported_config_and_nameless_tool() -> None:
     ctx = Context()
-    ctx.plugin(ToolService)
+    ctx.use(ToolService)
     await ctx.flush()
     service = McpBridgeService(ctx)
 
@@ -165,10 +165,10 @@ async def test_service_without_tools_or_layers() -> None:
 
 async def test_service_disposer_cleanup_on_fiber_dispose() -> None:
     ctx = Context()
-    ctx.plugin(ToolService)
+    ctx.use(ToolService)
     await ctx.flush()
 
-    fiber = ctx.plugin(McpBridgeService)
+    fiber = ctx.use(McpBridgeService)
     await ctx.flush()
     service: McpBridgeService = ctx.mcp
 

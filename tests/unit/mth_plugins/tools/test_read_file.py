@@ -1,4 +1,4 @@
-"""Unit tests for read_file tool plugin."""
+"""Unit tests for read_file tool component."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from anima import Context
 from magitech_harness.session.events import ToolCallData
 from magitech_harness.tools.service import ToolService
 
-from mth_plugins.tools.read_file.plugin import apply
+from mth_plugins.tools.read_file.component import apply
 from mth_plugins.tools.read_file.read_file import handle_read_file
 
 
@@ -86,11 +86,11 @@ async def test_handle_read_file_pagination(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_read_plugin_integration(tmp_path: Path) -> None:
-    """Verifies read_file plugin mounts and executes via ToolService."""
+async def test_read_component_integration(tmp_path: Path) -> None:
+    """Verifies read_file component mounts and executes via ToolService."""
     ctx = Context()
-    ctx.plugin(ToolService)
-    ctx.plugin(apply)
+    ctx.use(ToolService)
+    ctx.use(apply)
     await ctx.flush()
 
     assert ctx.tools.get("read_file") is not None

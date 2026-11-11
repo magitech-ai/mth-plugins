@@ -8,7 +8,7 @@ from magitech_harness.session.events import ToolCallData
 from magitech_harness.tools.definition import define_tool
 from magitech_harness.tools.service import ToolService
 
-from mth_plugins.guards.truncation.plugin import apply
+from mth_plugins.guards.truncation.component import apply
 from mth_plugins.guards.truncation.truncation import (
     _tail_suffix,
     format_size,
@@ -97,11 +97,11 @@ def test_truncate_tail_short_and_exceeded() -> None:
 
 
 @pytest.mark.asyncio
-async def test_truncation_plugin_waterfall_integration() -> None:
-    """Verifies truncation plugin attaches to tools/post-execute waterfall."""
+async def test_truncation_component_waterfall_integration() -> None:
+    """Verifies truncation component attaches to tools/post-execute waterfall."""
     ctx = Context()
-    ctx.plugin(ToolService)
-    ctx.plugin(apply, max_lines=2, max_bytes=50)
+    ctx.use(ToolService)
+    ctx.use(apply, max_lines=2, max_bytes=50)
     await ctx.flush()
 
     tool = define_tool(

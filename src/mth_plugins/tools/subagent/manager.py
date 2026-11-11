@@ -9,6 +9,7 @@ import subprocess
 import uuid
 from collections.abc import Callable, Sequence
 from pathlib import Path
+from typing import Any
 
 from anima import Context, Service
 from magitech_harness.agent.cancellation import AbortSignal
@@ -45,19 +46,17 @@ def _make_abort_forwarder(
 class SubagentManager(Service):
     """Manages conversational subagent lifecycles and workspace isolation."""
 
-    def __init__(
-        self,
-        ctx: Context,
-        subsessions_dir: Path | None = None,
-        workspace_root: Path | None = None,
-    ) -> None:
+    def __init__(self, ctx: Context, config: dict[str, Any] | None = None) -> None:
         super().__init__(ctx, "subagents")
-        self.subsessions_dir = subsessions_dir or (
+        cfg = config or {}
+        self.subsessions_dir = cfg.get("subsessions_dir") or (
             Path.home() / ".agents" / "sessions" / "subsessions"
         )
         self.subsessions_dir.mkdir(parents=True, exist_ok=True)
         self.workspace_root = (
-            workspace_root or getattr(ctx, "workspace_dir", None) or Path.cwd()
+            cfg.get("workspace_root")
+            or getattr(ctx, "workspace_dir", None)
+            or Path.cwd()
         )
 
         self._records: dict[str, SubagentRecord] = {}

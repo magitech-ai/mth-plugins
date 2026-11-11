@@ -16,8 +16,9 @@ class SessionSearchService(Service):
 
     inject: ClassVar[list[str]] = ["sessions"]
 
-    def __init__(self, ctx: Context, db_path: Path | str | None = None) -> None:
+    def __init__(self, ctx: Context, config: dict[str, Any] | None = None) -> None:
         super().__init__(ctx, "session_search")
+        db_path = (config or {}).get("db_path")
         path = (
             Path(db_path)
             if db_path is not None

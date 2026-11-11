@@ -2,7 +2,7 @@
   "name": "opentelemetry-bridge",
   "version": "0.1.0",
   "description": "OpenTelemetry distributed tracing instrumentation bridge conforming to GenAI semantic conventions for Magitech Harness",
-  "entry_point": "plugin.py:apply",
+  "entry_point": "component.py:apply",
   "types": [
     "Bridge"
   ],

@@ -1,7 +1,7 @@
-"""Checkpoint bridge plugin package."""
+"""Checkpoint bridge component package."""
 
+from mth_plugins.bridges.checkpoint.component import apply
 from mth_plugins.bridges.checkpoint.git import CheckpointEngine
-from mth_plugins.bridges.checkpoint.plugin import apply
 from mth_plugins.bridges.checkpoint.scanner import scan_worktree
 from mth_plugins.bridges.checkpoint.service import CheckpointService
 

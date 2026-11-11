@@ -1,4 +1,4 @@
-"""CodeAct tool plugin package."""
+"""CodeAct tool component package."""
 
 from mth_plugins.tools.codeact.codeact import (
     ASTSafetyVisitor,
@@ -8,7 +8,7 @@ from mth_plugins.tools.codeact.codeact import (
     FinalAnswerException,
     WriteProtectionVisitor,
 )
-from mth_plugins.tools.codeact.plugin import apply
+from mth_plugins.tools.codeact.component import apply
 
 __all__ = [
     "ASTSafetyVisitor",

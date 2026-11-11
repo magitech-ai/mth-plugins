@@ -11,19 +11,19 @@ import pytest
 from magitech_harness import create_harness
 from magitech_harness.session.events import EventType
 
-from mth_plugins.index import REPO_ROOT, scan_plugins
+from mth_plugins.index import REPO_ROOT, scan_components
 from mth_plugins.providers.openrouter.provider import OpenRouterProvider
 
 
 @pytest.mark.asyncio
 async def test_end_to_end_marketplace_turn(tmp_path: Path) -> None:
-    """Verifies complete end-to-end turn using marketplace plugins."""
+    """Verifies complete end-to-end turn using marketplace components."""
     # 1. Initialize Harness
     ctx = create_harness(storage_dir=tmp_path / "sessions")
     await ctx.flush()
 
-    # 2. Discover plugins from marketplace repo root
-    artifacts = scan_plugins(REPO_ROOT)
+    # 2. Discover components from marketplace repo root
+    artifacts = scan_components(REPO_ROOT)
     artifact_map = {a.name: a for a in artifacts}
     assert "openrouter-provider" in artifact_map
     assert "pollinations-provider" in artifact_map
@@ -128,7 +128,7 @@ async def test_end_to_end_marketplace_streaming_and_compaction(
     ctx = create_harness(storage_dir=tmp_path / "sessions")
     await ctx.flush()
 
-    artifacts = scan_plugins(REPO_ROOT)
+    artifacts = scan_components(REPO_ROOT)
     artifact_map = {a.name: a for a in artifacts}
 
     ctx.plugins.mount_plugin(artifact_map["bash-tool"].manifest)
@@ -239,7 +239,7 @@ async def test_end_to_end_pollinations_anonymous_turn(tmp_path: Path) -> None:
     ctx = create_harness(storage_dir=tmp_path / "sessions")
     await ctx.flush()
 
-    artifacts = scan_plugins(REPO_ROOT)
+    artifacts = scan_components(REPO_ROOT)
     artifact_map = {a.name: a for a in artifacts}
 
     # Mount provider directly from marketplace artifact
@@ -287,12 +287,12 @@ async def test_end_to_end_pollinations_anonymous_turn(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_fs_plugins_mount_and_unmount_independently(tmp_path: Path) -> None:
-    """Verifies read-only sandboxing and independent plugin lifecycle."""
+async def test_fs_components_mount_and_unmount_independently(tmp_path: Path) -> None:
+    """Verifies read-only sandboxing and independent component lifecycle."""
     ctx = create_harness(storage_dir=tmp_path / "sessions")
     await ctx.flush()
 
-    artifacts = scan_plugins(REPO_ROOT)
+    artifacts = scan_components(REPO_ROOT)
     artifact_map = {a.name: a for a in artifacts}
 
     # Mount only read-file-tool (read-only sandbox persona)

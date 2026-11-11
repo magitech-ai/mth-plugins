@@ -1,10 +1,10 @@
 # mth-plugins
 
-Official portable plugins and marketplace catalog for [Magitech Harness](https://github.com/magitech-ai/magitech-harness).
+Official portable components and marketplace catalog for [Magitech Harness](https://github.com/magitech-ai/magitech-harness).
 
 ## Overview
 
-`mth-plugins` contains model provider realms, extended tooling, guardrails, and agent profiles adhering to the **Everything is a Plugin** architectural design.
+`mth-plugins` contains model provider realms, extended tooling, guardrails, and agent profiles adhering to the **Everything is a Component** architectural design.
 
 ## Structure
 

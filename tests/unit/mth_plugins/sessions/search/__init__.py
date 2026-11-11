@@ -1,1 +1,1 @@
-"""Tests for session search plugin."""
+"""Tests for session search component."""

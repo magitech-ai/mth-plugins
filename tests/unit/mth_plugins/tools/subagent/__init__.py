@@ -1,1 +1,1 @@
-"""Tests for subagent tool plugin package."""
+"""Tests for subagent tool component package."""

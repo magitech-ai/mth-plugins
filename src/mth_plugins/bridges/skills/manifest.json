@@ -2,7 +2,7 @@
   "name": "skills-bridge",
   "version": "0.1.0",
   "description": "Progressive Agent Skills discovery and execution bridge for Magitech Harness",
-  "entry_point": "plugin.py:apply",
+  "entry_point": "component.py:apply",
   "types": [
     "Bridge"
   ],

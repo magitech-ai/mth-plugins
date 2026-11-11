@@ -1,1 +1,1 @@
-"""Tests for session title plugin."""
+"""Tests for session title component."""

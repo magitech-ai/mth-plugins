@@ -5,7 +5,7 @@
   "types": [
     "Session"
   ],
-  "entry_point": "plugin.py:apply",
+  "entry_point": "component.py:apply",
   "requires_services": [
     "sessions"
   ],

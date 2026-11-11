@@ -14,8 +14,10 @@ async def test_checkpoint_service_delegation(tmp_path: Path) -> None:
     ctx = Context()
     service = CheckpointService(
         ctx,
-        checkpoints_root=tmp_path / "checkpoints",
-        workspace_root=tmp_path / "ws",
+        {
+            "checkpoints_root": tmp_path / "checkpoints",
+            "workspace_root": tmp_path / "ws",
+        },
     )
     assert service.workspace_root == tmp_path / "ws"
 

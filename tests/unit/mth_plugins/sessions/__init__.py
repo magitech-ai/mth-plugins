@@ -1,1 +1,1 @@
-"""Tests for sessions plugins."""
+"""Tests for sessions components."""

@@ -15,7 +15,7 @@ def ctx() -> Context:
 
 
 def test_get_server_command(ctx: Context, tmp_path: Path) -> None:
-    svc = LspService(ctx, tmp_path)
+    svc = LspService(ctx, {"workspace_root": tmp_path})
     # Unknown extension
     assert svc.get_server_command(".xyz") is None
 
@@ -36,7 +36,7 @@ def test_get_server_command(ctx: Context, tmp_path: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_get_or_create_client(ctx: Context, tmp_path: Path) -> None:
-    svc = LspService(ctx, tmp_path)
+    svc = LspService(ctx, {"workspace_root": tmp_path})
 
     # 1. Unknown extension
     assert await svc.get_or_create_client(".unknown") is None
@@ -80,7 +80,7 @@ async def test_get_or_create_client(ctx: Context, tmp_path: Path) -> None:
 
 
 def test_format_diagnostics(ctx: Context, tmp_path: Path) -> None:
-    svc = LspService(ctx, tmp_path)
+    svc = LspService(ctx, {"workspace_root": tmp_path})
     # Empty
     assert svc.format_diagnostics([], "foo.py") == ""
 
@@ -120,7 +120,7 @@ def test_format_diagnostics(ctx: Context, tmp_path: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_get_definition_and_references(ctx: Context, tmp_path: Path) -> None:
-    svc = LspService(ctx, tmp_path)
+    svc = LspService(ctx, {"workspace_root": tmp_path})
     f = tmp_path / "app.py"
 
     # 1. No client available
@@ -167,7 +167,7 @@ async def test_get_definition_and_references(ctx: Context, tmp_path: Path) -> No
 
 @pytest.mark.asyncio
 async def test_stop_all(ctx: Context, tmp_path: Path) -> None:
-    svc = LspService(ctx, tmp_path)
+    svc = LspService(ctx, {"workspace_root": tmp_path})
     c1 = MagicMock()
     c1.stop = AsyncMock()
     svc._clients["python"] = c1

@@ -1,4 +1,4 @@
-"""Unit tests for OpenRouter provider and plugin."""
+"""Unit tests for OpenRouter provider and component."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from magitech_harness.agent.cancellation import AbortError, AbortSignal
 from magitech_harness.llm.service import LLMService
 from magitech_harness.llm.types import ModelChunk
 
-from mth_plugins.providers.openrouter.plugin import apply
+from mth_plugins.providers.openrouter.component import apply
 from mth_plugins.providers.openrouter.provider import OpenRouterProvider
 
 
@@ -220,8 +220,8 @@ def test_openrouter_provider_default_get_client() -> None:
     assert isinstance(client, httpx.AsyncClient)
 
 
-def test_openrouter_plugin_registration() -> None:
-    """Verifies OpenRouter plugin registration in Anima context."""
+def test_openrouter_component_registration() -> None:
+    """Verifies OpenRouter component registration in Anima context."""
     ctx = Context()
     ctx.llm = LLMService(ctx)
 
@@ -232,8 +232,8 @@ def test_openrouter_plugin_registration() -> None:
     assert provider.default_model == "openai/gpt-4o-mini"
 
 
-def test_openrouter_plugin_integration() -> None:
-    """Verifies OpenRouter plugin with config options."""
+def test_openrouter_component_integration() -> None:
+    """Verifies OpenRouter component with config options."""
     ctx = Context()
     ctx.llm = LLMService(ctx)
 
