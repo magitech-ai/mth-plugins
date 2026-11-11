@@ -75,9 +75,11 @@ def test_sandbox_service_diagnostics() -> None:
     ctx = Context()
     svc = SandboxService(
         ctx,
-        max_level=PrivilegeLevel.STRICT,
-        enforce=False,
-        bwrap_path="/usr/bin/bwrap",
+        {
+            "max_level": PrivilegeLevel.STRICT,
+            "enforce": False,
+            "bwrap_path": "/usr/bin/bwrap",
+        },
     )
     with patch("sys.platform", "linux"):
         svc.bwrap_path = "/usr/bin/bwrap"
@@ -95,7 +97,7 @@ def test_sandbox_service_diagnostics() -> None:
 
 def test_sandbox_validate_privilege() -> None:
     ctx = Context()
-    svc = SandboxService(ctx, max_level=PrivilegeLevel.STRICT)
+    svc = SandboxService(ctx, {"max_level": PrivilegeLevel.STRICT})
 
     # Valid: READONLY <= STRICT, STRICT <= STRICT
     svc.validate_privilege(PrivilegeLevel.READONLY)
@@ -108,7 +110,7 @@ def test_sandbox_validate_privilege() -> None:
 
 def test_sandbox_wrap_command_unrestricted(tmp_path: Path) -> None:
     ctx = Context()
-    svc = SandboxService(ctx, max_level=PrivilegeLevel.UNRESTRICTED)
+    svc = SandboxService(ctx, {"max_level": PrivilegeLevel.UNRESTRICTED})
 
     # String command
     assert svc.wrap_command("ls -la", cwd=tmp_path) == ["/bin/sh", "-c", "ls -la"]
@@ -120,7 +122,10 @@ def test_sandbox_wrap_command_unavailable_fallback_and_enforce(tmp_path: Path) -
     ctx = Context()
 
     # Fallback mode (enforce=False)
-    svc_fallback = SandboxService(ctx, max_level=PrivilegeLevel.STRICT, enforce=False)
+    svc_fallback = SandboxService(
+        ctx,
+        {"max_level": PrivilegeLevel.STRICT, "enforce": False},
+    )
     with patch.object(svc_fallback, "is_available", return_value=False):
         wrapped_str = svc_fallback.wrap_command("ls", cwd=tmp_path)
         assert wrapped_str == ["/bin/sh", "-c", "ls"]
@@ -128,7 +133,10 @@ def test_sandbox_wrap_command_unavailable_fallback_and_enforce(tmp_path: Path) -
         assert wrapped_list == ["echo", "hi"]
 
     # Enforce mode (enforce=True) -> raises SandboxUnavailableError
-    svc_enforce = SandboxService(ctx, max_level=PrivilegeLevel.STRICT, enforce=True)
+    svc_enforce = SandboxService(
+        ctx,
+        {"max_level": PrivilegeLevel.STRICT, "enforce": True},
+    )
     with (
         patch.object(svc_enforce, "is_available", return_value=False),
         pytest.raises(SandboxUnavailableError, match="Bubblewrap is unavailable"),
@@ -138,7 +146,7 @@ def test_sandbox_wrap_command_unavailable_fallback_and_enforce(tmp_path: Path) -
 
 def test_sandbox_wrap_command_available(tmp_path: Path) -> None:
     ctx = Context()
-    svc = SandboxService(ctx, max_level=PrivilegeLevel.STRICT)
+    svc = SandboxService(ctx, {"max_level": PrivilegeLevel.STRICT})
     with patch.object(svc, "is_available", return_value=True):
         svc.bwrap_path = "/usr/bin/bwrap"
         cmd = svc.wrap_command("whoami", cwd=tmp_path)
@@ -148,7 +156,7 @@ def test_sandbox_wrap_command_available(tmp_path: Path) -> None:
 
 async def test_sandbox_run_success(tmp_path: Path) -> None:
     ctx = Context()
-    svc = SandboxService(ctx, max_level=PrivilegeLevel.STRICT)
+    svc = SandboxService(ctx, {"max_level": PrivilegeLevel.STRICT})
 
     # Mock ctx.shell
     mock_shell = AsyncMock()
@@ -170,6 +178,6 @@ async def test_sandbox_run_success(tmp_path: Path) -> None:
 
 async def test_sandbox_run_no_shell_raises(tmp_path: Path) -> None:
     ctx = Context()
-    svc = SandboxService(ctx, max_level=PrivilegeLevel.STRICT)
+    svc = SandboxService(ctx, {"max_level": PrivilegeLevel.STRICT})
     with pytest.raises(RuntimeError, match="No shell service mounted"):
         await svc.run("echo test", cwd=tmp_path)

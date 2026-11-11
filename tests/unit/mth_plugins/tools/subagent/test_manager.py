@@ -44,7 +44,7 @@ class MockLoop(AgentLoopService):
 def parent_ctx(tmp_path: Path) -> Context:
     ctx = Context()
     ctx.workspace_dir = tmp_path
-    SessionService(ctx, base_storage_dir=tmp_path / "sessions")
+    SessionService(ctx, {"base_storage_dir": tmp_path / "sessions"})
     tools = ToolService(ctx)
     tools.register(
         Tool(name="read_file", description="", parameters={}, handler=AsyncMock())

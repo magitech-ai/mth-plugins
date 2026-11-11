@@ -96,7 +96,7 @@ class SubagentManager(Service):
 
             # Set up session storage
             child_sessions = SessionService(
-                child_ctx, base_storage_dir=self.subsessions_dir
+                child_ctx, {"base_storage_dir": self.subsessions_dir}
             )
             session_id = f"session-{subagent_id}"
             child_sessions.create(session_id)

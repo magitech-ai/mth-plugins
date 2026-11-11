@@ -14,7 +14,7 @@ from mth_plugins.guards.trust.store import TrustDecision, TrustStore
 
 async def test_gate_project_no_agents_dir(tmp_path: Path) -> None:
     ctx = Context()
-    gate = WorkspaceTrustGate(ctx, store_path=tmp_path / "trust.json")
+    gate = WorkspaceTrustGate(ctx, {"store_path": tmp_path / "trust.json"})
     # Empty project without .agents is safe
     assert await gate.check_project_trust(tmp_path / "plain_project") is True
 
@@ -22,7 +22,7 @@ async def test_gate_project_no_agents_dir(tmp_path: Path) -> None:
 async def test_gate_project_cached_decisions(tmp_path: Path) -> None:
     ctx = Context()
     store = TrustStore(tmp_path / "trust.json")
-    gate = WorkspaceTrustGate(ctx, store=store)
+    gate = WorkspaceTrustGate(ctx, {"store": store})
 
     project_dir = tmp_path / "my_project"
     agents_dir = project_dir / ".agents"
@@ -47,7 +47,7 @@ async def test_gate_prompt_user_approval_flow(tmp_path: Path) -> None:
     ctx._register_service("approvals", mock_approvals)
 
     store = TrustStore(tmp_path / "trust.json")
-    gate = WorkspaceTrustGate(ctx, store=store)
+    gate = WorkspaceTrustGate(ctx, {"store": store})
 
     project_dir = tmp_path / "promptee"
     agents_dir = project_dir / ".agents"
