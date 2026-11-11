@@ -34,12 +34,18 @@ async def test_handle_bash_validation(tmp_path: Path) -> None:
 @pytest.mark.asyncio
 async def test_handle_bash_success_and_empty(tmp_path: Path) -> None:
     """Verifies successful command execution and empty output case."""
-    # Standard output
-    res = await handle_bash({"command": "echo 'Magitech Harness'"})
+    # Standard output (unquoted: cmd.exe does not strip single quotes)
+    res = await handle_bash({"command": "echo Magitech Harness"})
     assert res == "Magitech Harness"
 
-    # Command with explicit valid cwd
-    res_cwd = await handle_bash({"command": "pwd", "cwd": str(tmp_path)})
+    # Command with explicit valid cwd (python3 prints the native cwd on
+    # every platform; Git's pwd would print a POSIX-style path on Windows)
+    res_cwd = await handle_bash(
+        {
+            "command": 'python3 -c "import os; print(os.getcwd())"',
+            "cwd": str(tmp_path),
+        }
+    )
     assert res_cwd == str(tmp_path)
 
     # Command with no output
@@ -50,13 +56,13 @@ async def test_handle_bash_success_and_empty(tmp_path: Path) -> None:
 @pytest.mark.asyncio
 async def test_handle_bash_failure() -> None:
     """Verifies handling of non-zero exit codes."""
-    # Failure with stderr
-    res = await handle_bash({"command": "echo 'an error' >&2; exit 1"})
+    # Failure with stderr (&& chains in both sh and cmd.exe; ';' does not)
+    res = await handle_bash({"command": "echo an error 1>&2 && exit 1"})
     assert "Command failed with exit code 1:" in res
     assert "an error" in res
 
     # Failure with stdout
-    res_stdout = await handle_bash({"command": "echo 'stdout fail'; exit 2"})
+    res_stdout = await handle_bash({"command": "echo stdout fail && exit 2"})
     assert "Command failed with exit code 2:" in res_stdout
     assert "stdout fail" in res_stdout
 
@@ -101,7 +107,7 @@ async def test_handle_bash_with_ctx_shell_and_spill(tmp_path: Path) -> None:
 
     # Small output via ctx.shell
     res_small = await handle_bash(
-        {"command": "echo 'via ctx.shell'"},
+        {"command": "echo via ctx.shell"},
         ctx=ctx,
         spill_dir=spill_dir,
     )
@@ -127,7 +133,7 @@ async def test_handle_bash_with_ctx_shell_and_spill(tmp_path: Path) -> None:
 
     # Test failure via ctx.shell
     res_fail = await handle_bash(
-        {"command": "echo 'fail err' >&2; exit 2"},
+        {"command": "echo fail err 1>&2 && exit 2"},
         ctx=ctx,
         spill_dir=spill_dir,
     )
@@ -173,5 +179,5 @@ async def test_bash_plugin_integration() -> None:
     assert tool is not None
     assert tool.name == "bash"
 
-    res = await tool.execute({"command": "echo 'registered bash tool'"})
+    res = await tool.execute({"command": "echo registered bash tool"})
     assert res == "registered bash tool"
