@@ -12,6 +12,11 @@ from magitech_harness.session.store import Session
 
 logger = logging.getLogger("mth_plugins.guards.compaction")
 
+_RETIRED_COMPACTION_TYPE = "session/compaction"
+"""Retired summary event, read-only: old logs still carry it, and the
+read side below still understands it. New summaries are written as
+``compaction/summary``; the full compaction engine sequence is Phase 4."""
+
 
 def estimate_tokens(text: str) -> int:
     """Estimates the number of tokens in a string using a 4-char heuristic."""
@@ -34,7 +39,7 @@ def estimate_history_tokens(events: list[SessionEvent]) -> int:
             total += estimate_tokens(
                 str(ev.payload.get("content", ev.payload.get("output", "")))
             )
-        elif ev.type == EventType.COMPACTION:
+        elif ev.type in (_RETIRED_COMPACTION_TYPE, EventType.COMPACTION_SUMMARY):
             total += estimate_tokens(str(ev.payload.get("summary", "")))
         else:
             total += 2
@@ -72,7 +77,7 @@ def _format_event_bullet(ev: SessionEvent) -> str | None:
     if ev.type == EventType.TOOL_RESULT:
         content = ev.payload.get("content", ev.payload.get("output", ""))
         return f"- Tool result: {content}"
-    if ev.type == EventType.COMPACTION:
+    if ev.type in (_RETIRED_COMPACTION_TYPE, EventType.COMPACTION_SUMMARY):
         return f"- Prior Summary: {ev.payload.get('summary', '')}"
     return None
 
@@ -111,7 +116,11 @@ async def compact_session(
     target_ratio: float = 0.5,
     custom_summary: str | None = None,
 ) -> dict[str, Any]:
-    """Compacts session history by folding prior events into a COMPACTION event."""
+    """Compacts session history by folding prior events into a summary event.
+
+    The summary is written as ``compaction/summary``: the retired
+    ``session/compaction`` type can no longer be appended.
+    """
     if len(session.events) < 2:
         return {
             "compacted": False,
@@ -132,7 +141,7 @@ async def compact_session(
 
     ctx.sessions.log_event(
         session,
-        EventType.COMPACTION,
+        EventType.COMPACTION_SUMMARY,
         {
             "summary": summary,
             "compacted_count": cut_idx,

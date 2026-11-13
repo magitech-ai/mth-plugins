@@ -23,7 +23,7 @@ from mth_plugins.guards.compaction.component import apply
 
 
 def _make_event(
-    ev_type: EventType,
+    ev_type: EventType | str,
     payload: dict[str, Any],
     session_id: str = "sess_test",
 ) -> SessionEvent:
@@ -68,8 +68,13 @@ def test_estimate_history_tokens() -> None:
             {"call_id": "c1", "content": "Paris is the capital of France."},
         ),
         _make_event(
-            EventType.COMPACTION,
+            EventType.COMPACTION_SUMMARY,
             {"summary": "User asked about Paris."},
+        ),
+        # The retired type is still read from old logs.
+        _make_event(
+            "session/compaction",
+            {"summary": "Older summary."},
         ),
         _make_event(
             EventType.STEP_START,
@@ -153,8 +158,13 @@ async def test_summarize_events_offline() -> None:
             {"call_id": "c1", "content": "Report data"},
         ),
         _make_event(
-            EventType.COMPACTION,
+            EventType.COMPACTION_SUMMARY,
             {"summary": "Previous summary"},
+        ),
+        # The retired type still formats from old logs.
+        _make_event(
+            "session/compaction",
+            {"summary": "Older summary"},
         ),
     ]
     summary = await summarize_events(events)
@@ -162,6 +172,7 @@ async def test_summarize_events_offline() -> None:
     assert "Assistant: Running analysis" in summary
     assert "Tool call 'analyze'" in summary
     assert "Prior Summary: Previous summary" in summary
+    assert "Prior Summary: Older summary" in summary
 
 
 @pytest.mark.asyncio
@@ -205,7 +216,7 @@ async def test_summarize_events_with_llm_failure_fallback() -> None:
 
 @pytest.mark.asyncio
 async def test_compact_session_success() -> None:
-    """Verifies compacting session creates a COMPACTION event and folds history."""
+    """Verifies compacting session creates a compaction/summary event."""
     ctx = Context()
     ctx.use(SessionService)
     await ctx.flush()
@@ -226,15 +237,19 @@ async def test_compact_session_success() -> None:
     assert "summary" in res
 
     # Verify event logged to session
-    assert session.events[-1].type == EventType.COMPACTION
+    assert session.events[-1].type == EventType.COMPACTION_SUMMARY
     assert session.events[-1].payload["compacted_count"] == 2
 
-    # Verify message projection
+    # The summary event is recorded, but derive_messages does not fold
+    # compaction/summary into the transcript yet: that fold belongs to
+    # the P2-6 derive rewrite. Until then the transcript still carries
+    # the pre-cut messages.
     msgs = session.derive_messages()
-    assert len(msgs) == 2
-    assert "[Conversation summary up to checkpoint]:" in msgs[0]["content"]
-    assert "Step 2" in msgs[0]["content"]
-    assert msgs[1]["content"] == "Step 2 answer"
+    assert len(msgs) == 4
+    assert msgs[0]["content"] == "Step 1"
+    assert msgs[1]["content"] == "Step 1 answer"
+    assert msgs[2]["content"] == "Step 2"
+    assert msgs[3]["content"] == "Step 2 answer"
 
 
 @pytest.mark.asyncio
@@ -312,7 +327,7 @@ async def test_component_waterfall_agent_pre_step_pressure() -> None:
     )
 
     assert res["action"] == "continue"
-    assert session.events[-1].type == EventType.COMPACTION
+    assert session.events[-1].type == EventType.COMPACTION_SUMMARY
 
 
 @pytest.mark.asyncio
@@ -351,11 +366,12 @@ async def test_compact_session_unbalanced_boundary() -> None:
     await ctx.flush()
 
     session = ctx.sessions.create("sess_unbalanced")
-    # 2 events: first has unresolved tool call, second is turn start
+    # 2 events: first has unresolved tool call, second is turn start.
+    # Append takes plain JSON data: a model instance is not lossless JSON.
     ctx.sessions.log_event(
         session,
         EventType.ASSISTANT_MESSAGE,
-        {"tool_calls": [ToolCallData(call_id="c_unres", name="tool", arguments={})]},
+        {"tool_calls": [{"call_id": "c_unres", "name": "tool", "arguments": {}}]},
     )
     ctx.sessions.log_event(session, EventType.STEP_START, {"step_index": 1})
 

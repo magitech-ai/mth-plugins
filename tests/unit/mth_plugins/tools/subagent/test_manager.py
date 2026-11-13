@@ -271,10 +271,12 @@ async def test_subagent_manager_manage_and_errors(
         assert recs[0].state == SubagentState.ERRORED
         assert "Execution crashed" in (recs[0].error or "")
 
-    # 3. Session missing error in child context
+    # 3. Session missing error in child context. The store is the source
+    # of truth now, so removing the session must go through the public
+    # delete path: clearing the service cache alone no longer hides it.
     sid = recs[0].subagent_id
     child_ctx = manager._child_contexts[sid]
-    child_ctx.sessions._active_sessions.clear()
+    assert child_ctx.sessions.delete(recs[0].session_id) is True
     await manager._run_child(sid, "another prompt")
     assert recs[0].state == SubagentState.ERRORED
     assert "not found in child context" in (recs[0].error or "")
