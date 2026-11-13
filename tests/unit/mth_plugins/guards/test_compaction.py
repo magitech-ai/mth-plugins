@@ -10,7 +10,13 @@ from anima import Context
 from magitech_harness.llm.service import LLMService, MockLLMProvider
 from magitech_harness.llm.types import ModelResponse
 from magitech_harness.session.events import EventType, SessionEvent, ToolCallData
+from magitech_harness.session.messages import (
+    create_assistant_message,
+    create_tool_result_message,
+    create_user_message,
+)
 from magitech_harness.session.service import SessionService
+from magitech_harness.session.store import Session
 
 from mth_plugins.guards.compaction.compaction import (
     compact_session,
@@ -32,6 +38,65 @@ def _make_event(
         session_id=session_id,
         type=ev_type,
         payload=payload,
+    )
+
+
+def _append_user(ctx: Context, session: Session, text: str) -> None:
+    """Appends one canonical user message to a session."""
+    ctx.sessions.log_event(
+        session,
+        EventType.USER_MESSAGE,
+        create_user_message(
+            content=[{"type": "text", "text": text}],
+            source={"kind": "user"},
+        ),
+    )
+
+
+def _append_assistant(
+    ctx: Context, session: Session, text: str, *, turn: int = 1, step: int = 1
+) -> None:
+    """Appends one canonical assistant message to a session."""
+    ctx.sessions.log_event(
+        session,
+        EventType.ASSISTANT_MESSAGE,
+        {
+            "turn": turn,
+            "step": step,
+            "message": create_assistant_message(
+                content=[{"type": "text", "text": text}],
+                provider="mock",
+                model="mock",
+            ),
+            "stream": [],
+        },
+    )
+
+
+def _append_assistant_call(
+    ctx: Context, session: Session, call_id: str, name: str
+) -> None:
+    """Appends one canonical assistant tool call with no result yet."""
+    ctx.sessions.log_event(
+        session,
+        EventType.ASSISTANT_MESSAGE,
+        {
+            "turn": 1,
+            "step": 1,
+            "message": create_assistant_message(
+                content=[
+                    {
+                        "type": "tool-call",
+                        "id": call_id,
+                        "name": name,
+                        "arguments": "{}",
+                    }
+                ],
+                provider="mock",
+                model="mock",
+            ),
+            "stream": [],
+        },
     )
 
 
@@ -80,6 +145,58 @@ def test_estimate_history_tokens() -> None:
             EventType.STEP_START,
             {"step_index": 1},
         ),
+        # Canonical block shapes, as written by the current turn loop.
+        _make_event(
+            EventType.USER_MESSAGE,
+            {
+                "id": "u1",
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "Canonical user"},
+                    42,
+                    {"type": "text", "text": 7},
+                ],
+                "source": {"kind": "user"},
+            },
+        ),
+        _make_event(
+            EventType.ASSISTANT_MESSAGE,
+            {
+                "turn": 1,
+                "step": 1,
+                "message": create_assistant_message(
+                    content=[
+                        {"type": "text", "text": "Canonical answer"},
+                        {
+                            "type": "tool-call",
+                            "id": "c1",
+                            "name": "search",
+                            "arguments": "{}",
+                        },
+                        {"type": "tool-call", "name": "nameless"},
+                    ],
+                    provider="mock",
+                    model="mock",
+                ),
+                "stream": [],
+            },
+        ),
+        _make_event(
+            EventType.TOOL_RESULT,
+            {
+                "turn": 1,
+                "step": 1,
+                "message": create_tool_result_message(
+                    call_id="c1",
+                    content=[{"type": "text", "text": "Canonical result"}],
+                ),
+            },
+        ),
+        _make_event(
+            EventType.ASSISTANT_MESSAGE,
+            {"message": {"content": "not-a-list"}},
+        ),
+        _make_event(EventType.TOOL_RESULT, {"output": "Output only result"}),
     ]
     total_tokens = estimate_history_tokens(events)
     assert total_tokens > 10
@@ -176,6 +293,57 @@ async def test_summarize_events_offline() -> None:
 
 
 @pytest.mark.asyncio
+async def test_summarize_events_canonical_shapes() -> None:
+    """Verifies offline summarization reads canonical block messages."""
+    events = [
+        _make_event(
+            EventType.USER_MESSAGE,
+            create_user_message(
+                content=[{"type": "text", "text": "Canonical user"}],
+                source={"kind": "user"},
+            ),
+        ),
+        _make_event(
+            EventType.ASSISTANT_MESSAGE,
+            {
+                "turn": 1,
+                "step": 1,
+                "message": create_assistant_message(
+                    content=[
+                        {"type": "text", "text": "Canonical answer"},
+                        {
+                            "type": "tool-call",
+                            "id": "c1",
+                            "name": "search",
+                            "arguments": "{}",
+                        },
+                    ],
+                    provider="mock",
+                    model="mock",
+                ),
+                "stream": [],
+            },
+        ),
+        _make_event(
+            EventType.TOOL_RESULT,
+            {
+                "turn": 1,
+                "step": 1,
+                "message": create_tool_result_message(
+                    call_id="c1",
+                    content=[{"type": "text", "text": "Canonical result"}],
+                ),
+            },
+        ),
+    ]
+    summary = await summarize_events(events)
+    assert "User: Canonical user" in summary
+    assert "Assistant: Canonical answer" in summary
+    assert "Tool call 'search'" in summary
+    assert "Tool result: Canonical result" in summary
+
+
+@pytest.mark.asyncio
 async def test_summarize_events_with_llm() -> None:
     """Verifies LLM-based summarization when LLM service is available."""
     ctx = Context()
@@ -222,14 +390,10 @@ async def test_compact_session_success() -> None:
     await ctx.flush()
 
     session = ctx.sessions.create("sess_compaction_1")
-    ctx.sessions.log_event(session, EventType.USER_MESSAGE, {"text": "Step 1"})
-    ctx.sessions.log_event(
-        session, EventType.ASSISTANT_MESSAGE, {"text": "Step 1 answer"}
-    )
-    ctx.sessions.log_event(session, EventType.USER_MESSAGE, {"text": "Step 2"})
-    ctx.sessions.log_event(
-        session, EventType.ASSISTANT_MESSAGE, {"text": "Step 2 answer"}
-    )
+    _append_user(ctx, session, "Step 1")
+    _append_assistant(ctx, session, "Step 1 answer")
+    _append_user(ctx, session, "Step 2")
+    _append_assistant(ctx, session, "Step 2 answer")
 
     res = await compact_session(ctx, session, target_ratio=0.5)
     assert res["compacted"] is True
@@ -240,16 +404,15 @@ async def test_compact_session_success() -> None:
     assert session.events[-1].type == EventType.COMPACTION_SUMMARY
     assert session.events[-1].payload["compacted_count"] == 2
 
-    # The summary event is recorded, but derive_messages does not fold
-    # compaction/summary into the transcript yet: that fold belongs to
-    # the P2-6 derive rewrite. Until then the transcript still carries
-    # the pre-cut messages.
+    # The summary event is log-only: the transcript still carries the
+    # pre-cut messages until the compaction flow appends a replacement
+    # message for the shadowed range.
     msgs = session.derive_messages()
     assert len(msgs) == 4
-    assert msgs[0]["content"] == "Step 1"
-    assert msgs[1]["content"] == "Step 1 answer"
-    assert msgs[2]["content"] == "Step 2"
-    assert msgs[3]["content"] == "Step 2 answer"
+    assert msgs[0]["content"] == [{"type": "text", "text": "Step 1"}]
+    assert msgs[1]["content"] == [{"type": "text", "text": "Step 1 answer"}]
+    assert msgs[2]["content"] == [{"type": "text", "text": "Step 2"}]
+    assert msgs[3]["content"] == [{"type": "text", "text": "Step 2 answer"}]
 
 
 @pytest.mark.asyncio
@@ -260,7 +423,7 @@ async def test_compact_session_not_compacted() -> None:
     await ctx.flush()
 
     session = ctx.sessions.create("sess_short")
-    ctx.sessions.log_event(session, EventType.USER_MESSAGE, {"text": "Single msg"})
+    _append_user(ctx, session, "Single msg")
 
     res = await compact_session(ctx, session)
     assert res["compacted"] is False
@@ -277,9 +440,9 @@ async def test_component_waterfall_session_compact() -> None:
     apply(ctx)
 
     session = ctx.sessions.create("sess_manual_compact")
-    ctx.sessions.log_event(session, EventType.USER_MESSAGE, {"text": "Turn 1"})
-    ctx.sessions.log_event(session, EventType.ASSISTANT_MESSAGE, {"text": "Answer 1"})
-    ctx.sessions.log_event(session, EventType.USER_MESSAGE, {"text": "Turn 2"})
+    _append_user(ctx, session, "Turn 1")
+    _append_assistant(ctx, session, "Answer 1")
+    _append_user(ctx, session, "Turn 2")
 
     res = await ctx.waterfall(
         "session/compact",
@@ -311,13 +474,9 @@ async def test_component_waterfall_agent_pre_step_pressure() -> None:
     apply(ctx, max_tokens=5, target_ratio=0.5)
 
     session = ctx.sessions.create("sess_pressure")
-    ctx.sessions.log_event(
-        session, EventType.USER_MESSAGE, {"text": "Long user message with words"}
-    )
-    ctx.sessions.log_event(
-        session, EventType.ASSISTANT_MESSAGE, {"text": "Long assistant response"}
-    )
-    ctx.sessions.log_event(session, EventType.USER_MESSAGE, {"text": "Next question"})
+    _append_user(ctx, session, "Long user message with words")
+    _append_assistant(ctx, session, "Long assistant response")
+    _append_user(ctx, session, "Next question")
 
     # Trigger pre-step
     res = await ctx.waterfall(
@@ -367,12 +526,7 @@ async def test_compact_session_unbalanced_boundary() -> None:
 
     session = ctx.sessions.create("sess_unbalanced")
     # 2 events: first has unresolved tool call, second is turn start.
-    # Append takes plain JSON data: a model instance is not lossless JSON.
-    ctx.sessions.log_event(
-        session,
-        EventType.ASSISTANT_MESSAGE,
-        {"tool_calls": [{"call_id": "c_unres", "name": "tool", "arguments": {}}]},
-    )
+    _append_assistant_call(ctx, session, "c_unres", "tool")
     ctx.sessions.log_event(session, EventType.STEP_START, {"step_index": 1})
 
     res = await compact_session(ctx, session, target_ratio=0.5)
@@ -390,7 +544,7 @@ async def test_component_waterfall_agent_pre_step_below_threshold() -> None:
     apply(ctx, max_tokens=10000)
 
     session = ctx.sessions.create("sess_small")
-    ctx.sessions.log_event(session, EventType.USER_MESSAGE, {"text": "Short message"})
+    _append_user(ctx, session, "Short message")
 
     res = await ctx.waterfall(
         "agent/pre-step",
