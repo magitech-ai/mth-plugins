@@ -274,8 +274,10 @@ async def test_subagent_manager_manage_and_errors(
     # 3. Session missing error in child context. The store is the source
     # of truth now, so removing the session must go through the public
     # delete path: clearing the service cache alone no longer hides it.
+    # Delete refuses a live write handle, so the session is closed first.
     sid = recs[0].subagent_id
     child_ctx = manager._child_contexts[sid]
+    assert child_ctx.sessions.close(recs[0].session_id) is True
     assert child_ctx.sessions.delete(recs[0].session_id) is True
     await manager._run_child(sid, "another prompt")
     assert recs[0].state == SubagentState.ERRORED
