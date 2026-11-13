@@ -99,7 +99,7 @@ class SubagentManager(Service):
             )
             session_id = f"session-{subagent_id}"
             child_sessions.create(session_id)
-            session_path = self.subsessions_dir / f"{session_id}.jsonl"
+            session_path = child_sessions.session_path(session_id)
 
             # Set up LLM service
             if hasattr(self.ctx, "llm"):
@@ -321,6 +321,9 @@ class SubagentManager(Service):
         if record is not None:
             record.state = SubagentState.TERMINATED
             record.state_detail = "Terminated"
+            # A terminated subagent never runs again: close its session
+            # first so the write handle is released and flushed.
+            self._child_contexts[subagent_id].sessions.close(record.session_id)
 
     async def shutdown(self) -> None:
         """Terminates all active subagents and releases allocated resources."""
