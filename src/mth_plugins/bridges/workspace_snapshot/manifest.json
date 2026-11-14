@@ -1,5 +1,5 @@
 {
-  "name": "checkpoint-bridge",
+  "name": "workspace-snapshot",
   "version": "0.1.0",
   "description": "Shadow Git repository turn snapshotting, diffing, and restoration for Magitech Harness",
   "types": [

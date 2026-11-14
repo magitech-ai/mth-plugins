@@ -1,4 +1,4 @@
-"""Component entry point registering checkpoint bridge tools and turn hooks."""
+"""Component entry point registering snapshot bridge tools and turn hooks."""
 
 from __future__ import annotations
 
@@ -11,17 +11,17 @@ from anima.events import EventMode
 from magitech_harness.tools.definition import Tool
 from magitech_harness.tools.service import ToolService
 
-from mth_plugins.bridges.checkpoint.service import CheckpointService
+from mth_plugins.bridges.workspace_snapshot.service import SnapshotService
 
 
 def apply(
     ctx: Context,
     config: dict[str, Any] | None = None,
     **kwargs: Any,
-) -> CheckpointService:
-    """Mounts the checkpoint bridge service, tools, and waterfall hooks."""
+) -> SnapshotService:
+    """Mounts the snapshot bridge service, tools, and waterfall hooks."""
     cfg = {**(config or {}), **kwargs}
-    service = CheckpointService(ctx, cfg)
+    service = SnapshotService(ctx, cfg)
 
     async def _on_agent_turn(
         turn_dict: dict[str, Any],
@@ -39,34 +39,34 @@ def apply(
     if tools_svc is not None:
 
         async def _handle_diff(args: dict[str, Any]) -> dict[str, Any]:
-            target = str(args.get("target_checkpoint", "latest"))
+            target = str(args.get("target_snapshot", "latest"))
             ws_str = args.get("workspace")
             ws = Path(str(ws_str)) if ws_str else None
-            diff_text = await service.diff(target_checkpoint=target, workspace=ws)
+            diff_text = await service.diff(target_snapshot=target, workspace=ws)
             return {
                 "success": True,
-                "target_checkpoint": target,
+                "target_snapshot": target,
                 "diff": diff_text,
             }
 
         async def _handle_restore(args: dict[str, Any]) -> dict[str, Any]:
-            cid = str(args.get("checkpoint_id", "latest"))
+            cid = str(args.get("snapshot_id", "latest"))
             ws_str = args.get("workspace")
             ws = Path(str(ws_str)) if ws_str else None
             success = await service.restore(cid, workspace=ws)
             return {
                 "success": success,
-                "checkpoint_id": cid,
+                "snapshot_id": cid,
             }
 
         tools_svc.register(
             Tool(
-                name="checkpoint_diff",
+                name="snapshot_diff",
                 description="Show unified diff between snapshot and current workspace.",
                 parameters={
-                    "target_checkpoint": {
+                    "target_snapshot": {
                         "type": "string",
-                        "description": "Checkpoint ID or 'latest' (default).",
+                        "description": "Snapshot ID or 'latest' (default).",
                     },
                     "workspace": {
                         "type": "string",
@@ -79,12 +79,12 @@ def apply(
 
         tools_svc.register(
             Tool(
-                name="checkpoint_restore",
+                name="snapshot_restore",
                 description="Restore workspace files to a specific snapshot state.",
                 parameters={
-                    "checkpoint_id": {
+                    "snapshot_id": {
                         "type": "string",
-                        "description": "Checkpoint ID or 'latest' to restore.",
+                        "description": "Snapshot ID or 'latest' to restore.",
                         "required": True,
                     },
                     "workspace": {

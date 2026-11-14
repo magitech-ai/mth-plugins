@@ -1,11 +1,11 @@
-"""Unit tests for CheckpointEngine Git operations and snapshot lifecycle."""
+"""Unit tests for SnapshotEngine Git operations and snapshot lifecycle."""
 
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from mth_plugins.bridges.checkpoint.git import CheckpointEngine
+from mth_plugins.bridges.workspace_snapshot.git import SnapshotEngine
 
 
 @pytest.fixture
@@ -17,32 +17,32 @@ def workspace(tmp_path: Path) -> Path:
     return ws
 
 
-def test_git_dir_and_checkpoints_storage(tmp_path: Path, workspace: Path) -> None:
-    engine = CheckpointEngine(checkpoints_root=tmp_path / "checkpoints")
+def test_git_dir_and_snapshots_storage(tmp_path: Path, workspace: Path) -> None:
+    engine = SnapshotEngine(snapshots_root=tmp_path / "snapshots")
     git_dir = engine.git_dir_for(workspace)
     assert len(git_dir.name) == 16
 
-    # Missing checkpoints file
-    assert engine.load_checkpoints(git_dir) == {}
+    # Missing snapshots file
+    assert engine.load_snapshots(git_dir) == {}
 
     # Save and reload
     git_dir.mkdir(parents=True)
-    engine.save_checkpoints(git_dir, {"t1": "sha123", "latest": "sha123"})
-    loaded = engine.load_checkpoints(git_dir)
+    engine.save_snapshots(git_dir, {"t1": "sha123", "latest": "sha123"})
+    loaded = engine.load_snapshots(git_dir)
     assert loaded["t1"] == "sha123"
 
-    # Corrupted checkpoints file
-    (git_dir / "checkpoints.json").write_text("not json", encoding="utf-8")
-    assert engine.load_checkpoints(git_dir) == {}
+    # Corrupted snapshots file
+    (git_dir / "snapshots.json").write_text("not json", encoding="utf-8")
+    assert engine.load_snapshots(git_dir) == {}
 
-    # Non-dict JSON in checkpoints file
-    (git_dir / "checkpoints.json").write_text("[]", encoding="utf-8")
-    assert engine.load_checkpoints(git_dir) == {}
+    # Non-dict JSON in snapshots file
+    (git_dir / "snapshots.json").write_text("[]", encoding="utf-8")
+    assert engine.load_snapshots(git_dir) == {}
 
 
 @pytest.mark.asyncio
 async def test_ensure_git_dir(tmp_path: Path, workspace: Path) -> None:
-    engine = CheckpointEngine(checkpoints_root=tmp_path / "checkpoints")
+    engine = SnapshotEngine(snapshots_root=tmp_path / "snapshots")
     git_dir = engine.git_dir_for(workspace)
 
     # 1. Initialize bare git repository with alternates
@@ -59,14 +59,14 @@ async def test_ensure_git_dir(tmp_path: Path, workspace: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_checkpoint_capture_diff_and_restore(
+async def test_snapshot_capture_diff_and_restore(
     tmp_path: Path, workspace: Path
 ) -> None:
-    engine = CheckpointEngine(checkpoints_root=tmp_path / "checkpoints")
+    engine = SnapshotEngine(snapshots_root=tmp_path / "snapshots")
 
     # 1. Capture snapshot when worktree exceeds bounds
     with patch(
-        "mth_plugins.bridges.checkpoint.git.scan_worktree",
+        "mth_plugins.bridges.workspace_snapshot.git.scan_worktree",
         return_value=(1000, 1000, True),
     ):
         assert await engine.capture("turn-0", workspace) == ""
@@ -75,19 +75,19 @@ async def test_checkpoint_capture_diff_and_restore(
     tree_sha = await engine.capture("turn-1", workspace)
     assert tree_sha != ""
 
-    # Check checkpoints.json recorded the tree_sha
+    # Check snapshots.json recorded the tree_sha
     git_dir = engine.git_dir_for(workspace)
-    checkpoints = engine.load_checkpoints(git_dir)
-    assert checkpoints["turn-1"] == tree_sha
-    assert checkpoints["latest"] == tree_sha
+    snapshots = engine.load_snapshots(git_dir)
+    assert snapshots["turn-1"] == tree_sha
+    assert snapshots["latest"] == tree_sha
 
     # 3. Diff without modifications -> empty diff
-    diff_empty = await engine.diff(workspace, target_checkpoint="turn-1")
+    diff_empty = await engine.diff(workspace, target_snapshot="turn-1")
     assert diff_empty == ""
 
     # Modify file and diff
     (workspace / "file.txt").write_text("modified text", encoding="utf-8")
-    diff_out = await engine.diff(workspace, target_checkpoint="turn-1")
+    diff_out = await engine.diff(workspace, target_snapshot="turn-1")
     assert "-initial version" in diff_out
     assert "+modified text" in diff_out
 
@@ -98,8 +98,8 @@ async def test_checkpoint_capture_diff_and_restore(
 
 
 @pytest.mark.asyncio
-async def test_checkpoint_edge_cases_and_failures(tmp_path: Path) -> None:
-    engine = CheckpointEngine(checkpoints_root=tmp_path / "checkpoints")
+async def test_snapshot_edge_cases_and_failures(tmp_path: Path) -> None:
+    engine = SnapshotEngine(snapshots_root=tmp_path / "snapshots")
     fake_ws = tmp_path / "fake"
     fake_ws.mkdir()
 
@@ -109,11 +109,11 @@ async def test_checkpoint_edge_cases_and_failures(tmp_path: Path) -> None:
     # 2. Restore on non-existent git dir returns False
     assert await engine.restore("latest", fake_ws) is False
 
-    # 3. Target checkpoint missing in existing git dir
+    # 3. Target snapshot missing in existing git dir
     git_dir = engine.git_dir_for(fake_ws)
     git_dir.mkdir(parents=True)
-    assert await engine.diff(fake_ws, target_checkpoint="nonexistent") == ""
-    assert await engine.diff(fake_ws, target_checkpoint="") == ""
+    assert await engine.diff(fake_ws, target_snapshot="nonexistent") == ""
+    assert await engine.diff(fake_ws, target_snapshot="") == ""
     assert await engine.restore("nonexistent", fake_ws) is False
     assert await engine.restore("", fake_ws) is False
 
@@ -125,7 +125,7 @@ async def test_checkpoint_edge_cases_and_failures(tmp_path: Path) -> None:
         assert res == ""
 
     # 5. read-tree failure during restore
-    engine.save_checkpoints(git_dir, {"bad_tree": "deadbeef"})
+    engine.save_snapshots(git_dir, {"bad_tree": "deadbeef"})
     with patch.object(
         engine, "_run_git", AsyncMock(return_value=(1, "", "fatal tree missing"))
     ):
@@ -137,4 +137,4 @@ async def test_checkpoint_edge_cases_and_failures(tmp_path: Path) -> None:
         "_run_git",
         AsyncMock(side_effect=[(0, "", ""), (1, "", "diff failure")]),
     ):
-        assert await engine.diff(fake_ws, target_checkpoint="bad_tree") == ""
+        assert await engine.diff(fake_ws, target_snapshot="bad_tree") == ""

@@ -1,4 +1,4 @@
-"""Unit tests for CheckpointService delegation."""
+"""Unit tests for SnapshotService delegation."""
 
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
@@ -6,16 +6,16 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from anima import Context
 
-from mth_plugins.bridges.checkpoint.service import CheckpointService
+from mth_plugins.bridges.workspace_snapshot.service import SnapshotService
 
 
 @pytest.mark.asyncio
-async def test_checkpoint_service_delegation(tmp_path: Path) -> None:
+async def test_snapshot_service_delegation(tmp_path: Path) -> None:
     ctx = Context()
-    service = CheckpointService(
+    service = SnapshotService(
         ctx,
         {
-            "checkpoints_root": tmp_path / "checkpoints",
+            "snapshots_root": tmp_path / "snapshots",
             "workspace_root": tmp_path / "ws",
         },
     )

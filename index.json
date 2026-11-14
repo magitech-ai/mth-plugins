@@ -126,10 +126,10 @@
     }
   },
   "bridges": {
-    "checkpoint-bridge": {
+    "workspace-snapshot": {
       "version": "0.1.0",
       "description": "Shadow Git repository turn snapshotting, diffing, and restoration for Magitech Harness",
-      "path": "src/mth_plugins/bridges/checkpoint",
+      "path": "src/mth_plugins/bridges/workspace_snapshot",
       "entry_point": "component.py:apply",
       "types": [
         "Bridge",
