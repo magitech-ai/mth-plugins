@@ -22,6 +22,13 @@ async def test_end_to_end_marketplace_turn(tmp_path: Path) -> None:
     ctx = create_harness(storage_dir=tmp_path / "sessions")
     await ctx.flush()
 
+    # The bundle's first-prompt row is displaced here: this test scripts
+    # exactly two model responses for the turn, and a live title call
+    # would consume one. The row's own behaviour is covered by the
+    # harness kernel K5 tests.
+    loader = ctx.get("loader", None, strict=False)
+    await loader.disable("session-title-first-prompt")
+
     # 2. Discover components from marketplace repo root
     artifacts = scan_components(REPO_ROOT)
     artifact_map = {a.name: a for a in artifacts}
