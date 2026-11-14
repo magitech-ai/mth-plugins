@@ -18,6 +18,49 @@ read side below still understands it. New summaries are written as
 ``compaction/summary``; the full compaction engine sequence is Phase 4."""
 
 
+def _blocks_text(content: list[Any]) -> str:
+    """Text of canonical content blocks, ignoring non-text blocks."""
+    return "".join(
+        block["text"]
+        for block in content
+        if isinstance(block, dict)
+        and block.get("type") == "text"
+        and isinstance(block.get("text"), str)
+    )
+
+
+def _content_text(payload: dict[str, Any]) -> str:
+    """Text carried by one event payload, flat or canonical block shape."""
+    for value in (payload.get("text"), payload.get("content"), payload.get("output")):
+        if isinstance(value, str):
+            return value
+    content = payload.get("content")
+    if isinstance(content, list):
+        return _blocks_text(content)
+    message = payload.get("message")
+    if isinstance(message, dict):
+        nested = message.get("content")
+        if isinstance(nested, list):
+            return _blocks_text(nested)
+    return ""
+
+
+def _tool_call_names(payload: dict[str, Any]) -> list[str]:
+    """Tool-call names on one assistant payload, flat or canonical shape."""
+    names = [getattr(tc, "name", str(tc)) for tc in (payload.get("tool_calls") or [])]
+    message = payload.get("message")
+    content = message.get("content") if isinstance(message, dict) else None
+    if isinstance(content, list):
+        names.extend(
+            block["name"]
+            for block in content
+            if isinstance(block, dict)
+            and block.get("type") == "tool-call"
+            and isinstance(block.get("name"), str)
+        )
+    return names
+
+
 def estimate_tokens(text: str) -> int:
     """Estimates the number of tokens in a string using a 4-char heuristic."""
     if not text:
@@ -30,15 +73,13 @@ def estimate_history_tokens(events: list[SessionEvent]) -> int:
     total = 0
     for ev in events:
         if ev.type == EventType.USER_MESSAGE:
-            total += estimate_tokens(str(ev.payload.get("text", "")))
+            total += estimate_tokens(_content_text(ev.payload))
         elif ev.type == EventType.ASSISTANT_MESSAGE:
-            total += estimate_tokens(str(ev.payload.get("text", "")))
-            for tc in ev.payload.get("tool_calls") or []:
-                total += estimate_tokens(str(tc))
+            total += estimate_tokens(_content_text(ev.payload))
+            for name in _tool_call_names(ev.payload):
+                total += estimate_tokens(name)
         elif ev.type == EventType.TOOL_RESULT:
-            total += estimate_tokens(
-                str(ev.payload.get("content", ev.payload.get("output", "")))
-            )
+            total += estimate_tokens(_content_text(ev.payload))
         elif ev.type in (_RETIRED_COMPACTION_TYPE, EventType.COMPACTION_SUMMARY):
             total += estimate_tokens(str(ev.payload.get("summary", "")))
         else:
@@ -63,20 +104,17 @@ def find_safe_cut_index(
 def _format_event_bullet(ev: SessionEvent) -> str | None:
     """Formats a single session event into a readable summary bullet."""
     if ev.type == EventType.USER_MESSAGE:
-        return f"- User: {ev.payload.get('text', '')}"
+        return f"- User: {_content_text(ev.payload)}"
     if ev.type == EventType.ASSISTANT_MESSAGE:
-        text = ev.payload.get("text", "")
-        tc_names = [
-            getattr(tc, "name", str(tc)) for tc in (ev.payload.get("tool_calls") or [])
-        ]
+        text = _content_text(ev.payload)
+        tc_names = _tool_call_names(ev.payload)
         items = []
         if text:
             items.append(f"Assistant: {text}")
         items.extend(f"Tool call '{name}'" for name in tc_names)
         return "- " + "; ".join(items) if items else None
     if ev.type == EventType.TOOL_RESULT:
-        content = ev.payload.get("content", ev.payload.get("output", ""))
-        return f"- Tool result: {content}"
+        return f"- Tool result: {_content_text(ev.payload)}"
     if ev.type in (_RETIRED_COMPACTION_TYPE, EventType.COMPACTION_SUMMARY):
         return f"- Prior Summary: {ev.payload.get('summary', '')}"
     return None

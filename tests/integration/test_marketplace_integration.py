@@ -227,12 +227,12 @@ async def test_end_to_end_marketplace_streaming_and_compaction(
     assert "summary" in compact_res
     assert session.events[-1].type == EventType.COMPACTION_SUMMARY
 
-    # The summary event is recorded, but derive_messages does not fold
-    # compaction/summary into the transcript yet: that fold belongs to
-    # the P2-6 derive rewrite.
+    # The summary event is log-only: the transcript still carries the
+    # pre-cut messages until the compaction flow appends a replacement
+    # message for the shadowed range.
     msgs = session.derive_messages()
     assert len(msgs) >= 2
-    assert "Run streaming echo" in msgs[0]["content"]
+    assert msgs[0]["content"] == [{"type": "text", "text": "Run streaming echo"}]
 
 
 @pytest.mark.asyncio
