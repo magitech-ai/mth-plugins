@@ -15,6 +15,9 @@ from anima import Context, Service
 from magitech_harness.agent.cancellation import AbortSignal
 from magitech_harness.agent.loop import AgentLoopService
 from magitech_harness.llm.service import LLMService
+from magitech_harness.session.persistence_jsonl import (
+    JsonlSessionPersistenceService,
+)
 from magitech_harness.session.service import SessionService
 from magitech_harness.tools.service import ToolService
 
@@ -93,7 +96,11 @@ class SubagentManager(Service):
             child_ctx = Context()
             setattr(child_ctx, "workspace_dir", workspace_path)  # noqa: B010
 
-            # Set up session storage
+            # Set up session storage. The child sessions service resolves
+            # its persistence backend lazily from the persistence row, so
+            # the row mounts on the child context first; the child carries
+            # no projection registry, so no cache row mounts here.
+            JsonlSessionPersistenceService(child_ctx, {"root": self.subsessions_dir})
             child_sessions = SessionService(
                 child_ctx, {"base_storage_dir": self.subsessions_dir}
             )
