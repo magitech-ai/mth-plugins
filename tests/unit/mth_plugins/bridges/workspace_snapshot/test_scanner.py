@@ -3,7 +3,7 @@
 from pathlib import Path
 from unittest.mock import patch
 
-from mth_plugins.bridges.checkpoint.scanner import (
+from mth_plugins.bridges.workspace_snapshot.scanner import (
     GitignoreRule,
     is_ignored,
     parse_gitignore_file,

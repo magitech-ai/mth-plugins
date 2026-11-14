@@ -1,4 +1,4 @@
-"""Unit tests for checkpoint bridge component tools and turn waterfall."""
+"""Unit tests for snapshot bridge component tools and turn waterfall."""
 
 from pathlib import Path
 from typing import Any
@@ -8,17 +8,17 @@ import pytest
 from anima import Context
 from magitech_harness.tools.service import ToolService
 
-from mth_plugins.bridges.checkpoint.component import apply
+from mth_plugins.bridges.workspace_snapshot.component import apply
 
 
 @pytest.mark.asyncio
-async def test_checkpoint_component_waterfall_and_tools(tmp_path: Path) -> None:
+async def test_snapshot_component_waterfall_and_tools(tmp_path: Path) -> None:
     ctx = Context()
     tools = ToolService(ctx)
 
     service = apply(
         ctx,
-        checkpoints_root=tmp_path / "checkpoints",
+        snapshots_root=tmp_path / "snapshots",
         workspace_root=tmp_path / "ws",
     )
     assert service is not None
@@ -43,25 +43,25 @@ async def test_checkpoint_component_waterfall_and_tools(tmp_path: Path) -> None:
         await ctx.waterfall("agent/turn", {}, default_handler=_default_turn)
         mock_cap_empty.assert_not_called()
 
-    # 2. Tool checkpoint_diff
-    diff_tool = tools.get("checkpoint_diff")
+    # 2. Tool snapshot_diff
+    diff_tool = tools.get("snapshot_diff")
     assert diff_tool is not None
     with patch.object(service, "diff", AsyncMock(return_value="diff output")):
         res_diff = await diff_tool.execute(
-            {"target_checkpoint": "t1", "workspace": str(tmp_path / "custom_ws")}
+            {"target_snapshot": "t1", "workspace": str(tmp_path / "custom_ws")}
         )
         assert res_diff["success"] is True
         assert res_diff["diff"] == "diff output"
 
-    # 3. Tool checkpoint_restore
-    restore_tool = tools.get("checkpoint_restore")
+    # 3. Tool snapshot_restore
+    restore_tool = tools.get("snapshot_restore")
     assert restore_tool is not None
     with patch.object(service, "restore", AsyncMock(return_value=True)):
         res_restore = await restore_tool.execute(
-            {"checkpoint_id": "t1", "workspace": str(tmp_path / "custom_ws")}
+            {"snapshot_id": "t1", "workspace": str(tmp_path / "custom_ws")}
         )
         assert res_restore["success"] is True
-        assert res_restore["checkpoint_id"] == "t1"
+        assert res_restore["snapshot_id"] == "t1"
 
     # 4. Context without tools
     empty_ctx = Context()
