@@ -12,13 +12,8 @@ from pathlib import Path
 from typing import Any
 
 from anima import Context, Service
+from magitech_harness import check_bundle_entries, create_harness
 from magitech_harness.agent.cancellation import AbortSignal
-from magitech_harness.agent.loop import AgentLoopService
-from magitech_harness.llm.service import LLMService
-from magitech_harness.session.persistence_jsonl import (
-    JsonlSessionPersistenceService,
-)
-from magitech_harness.session.service import SessionService
 from magitech_harness.tools.service import ToolService
 
 from mth_plugins.tools.subagent.types import (
@@ -93,33 +88,27 @@ class SubagentManager(Service):
             )
             child_name = spec.agent_name or "subagent"
 
-            child_ctx = Context()
+            # The child context is built by loading the default bundle,
+            # so it carries the full set of bundle rows (sessions with
+            # persistence, projections, title service, checkpoint policy,
+            # projection cache, agent loop) instead of a hand-built subset.
+            # With a running loop the rows settle on the caller's flush;
+            # fail loud here if any row did not mount.
+            child_ctx = create_harness(storage_dir=self.subsessions_dir)
             setattr(child_ctx, "workspace_dir", workspace_path)  # noqa: B010
+            await child_ctx.flush()
+            check_bundle_entries(child_ctx)
 
-            # Set up session storage. The child sessions service resolves
-            # its persistence backend lazily from the persistence row, so
-            # the row mounts on the child context first; the child carries
-            # no projection registry, so no cache row mounts here.
-            JsonlSessionPersistenceService(child_ctx, {"root": self.subsessions_dir})
-            child_sessions = SessionService(
-                child_ctx, {"base_storage_dir": self.subsessions_dir}
-            )
+            child_sessions = child_ctx.sessions
             session_id = f"session-{subagent_id}"
             child_sessions.create(session_id)
             session_path = child_sessions.session_path(session_id)
 
-            # Set up LLM service
-            if hasattr(self.ctx, "llm"):
-                child_llm = LLMService(child_ctx)
-                child_llm._providers = dict(self.ctx.llm._providers)
-                child_llm._active_provider_name = self.ctx.llm._active_provider_name
+            # Copy the parent's providers through the public seams.
+            self._copy_providers(child_ctx)
 
             # Set up scoped tools
-            child_tools = ToolService(child_ctx)
-            effective_tools = self._populate_child_tools(child_tools, spec)
-
-            # Set up loop service
-            AgentLoopService(child_ctx)
+            effective_tools = self._populate_child_tools(child_ctx.tools, spec)
 
             # Cancellation propagation
             child_signal = AbortSignal()
@@ -162,6 +151,21 @@ class SubagentManager(Service):
 
         return records
 
+    def _copy_providers(self, child_ctx: Context) -> None:
+        """Copies the parent's providers onto the child, preserving the active one."""
+        parent_llm = getattr(self.ctx, "llm", None)
+        if parent_llm is None:
+            return
+        child_llm = child_ctx.llm
+        active = parent_llm.active_provider
+        active_name: str | None = None
+        for name, provider in parent_llm.providers.items():
+            child_llm.register_provider(name, provider)
+            if provider is active:
+                active_name = name
+        if active_name is not None:
+            child_llm.set_active_provider(active_name)
+
     def _populate_child_tools(
         self,
         child_tools: ToolService,
@@ -179,7 +183,7 @@ class SubagentManager(Service):
         effective: list[str] = []
         parent_tools = getattr(self.ctx, "tools", None)
         if parent_tools is not None:
-            for name, tool in parent_tools._registry.items():
+            for name, tool in parent_tools.tools.items():
                 if name in SUBAGENT_TRIAD_TOOLS:
                     continue
                 if allowed is None or name in allowed:

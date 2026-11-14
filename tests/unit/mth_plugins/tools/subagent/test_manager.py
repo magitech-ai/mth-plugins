@@ -3,15 +3,17 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from anima import Context
+from magitech_harness import create_harness as real_create_harness
 from magitech_harness.agent.cancellation import AbortSignal
 from magitech_harness.agent.loop import AgentLoopService
-from magitech_harness.llm.service import LLMService
+from magitech_harness.llm.service import LLMService, MockLLMProvider
 from magitech_harness.session.service import SessionService
 from magitech_harness.tools.definition import Tool
 from magitech_harness.tools.service import ToolService
@@ -38,6 +40,32 @@ class MockLoop(AgentLoopService):
         if self.raise_exc:
             raise self.raise_exc
         return self.return_value
+
+
+def _bundle_child_factory(
+    return_value: str = "Turn result",
+    raise_exc: Exception | None = None,
+    captured: list[Context] | None = None,
+    loops: list[MockLoop] | None = None,
+) -> Callable[..., Context]:
+    """Replacement for manager.create_harness: real bundle ctx, mock loop.
+
+    The child context is built by the real bundle loader, exactly as in
+    production; only the agent loop is swapped for a MockLoop so the
+    turn result is deterministic.
+    """
+
+    def _factory(storage_dir: Path | str | None = None, **kwargs: Any) -> Context:
+        ctx = real_create_harness(storage_dir=storage_dir)
+        loop = MockLoop(ctx, return_value)
+        loop.raise_exc = raise_exc
+        if captured is not None:
+            captured.append(ctx)
+        if loops is not None:
+            loops.append(loop)
+        return ctx
+
+    return _factory
 
 
 @pytest.fixture
@@ -68,8 +96,8 @@ async def test_subagent_manager_invoke_sync_and_presets(
 
     # 1. Research preset: automatically restricts to research tools
     with patch(
-        "mth_plugins.tools.subagent.manager.AgentLoopService",
-        side_effect=lambda c: MockLoop(c, "Research completed"),
+        "mth_plugins.tools.subagent.manager.create_harness",
+        side_effect=_bundle_child_factory("Research completed"),
     ):
         specs = [
             SubagentSpec(
@@ -89,8 +117,8 @@ async def test_subagent_manager_invoke_sync_and_presets(
 
     # 2. General role with custom allowed_tools
     with patch(
-        "mth_plugins.tools.subagent.manager.AgentLoopService",
-        side_effect=lambda c: MockLoop(c, "Custom completed"),
+        "mth_plugins.tools.subagent.manager.create_harness",
+        side_effect=_bundle_child_factory("Custom completed"),
     ):
         specs2 = [
             SubagentSpec(
@@ -116,14 +144,9 @@ async def test_subagent_manager_invoke_background_and_send_message(
 
     loop_instances: list[MockLoop] = []
 
-    def _loop_factory(c: Context) -> MockLoop:
-        loop = MockLoop(c, "Turn 1 done")
-        loop_instances.append(loop)
-        return loop
-
     with patch(
-        "mth_plugins.tools.subagent.manager.AgentLoopService",
-        side_effect=_loop_factory,
+        "mth_plugins.tools.subagent.manager.create_harness",
+        side_effect=_bundle_child_factory("Turn 1 done", loops=loop_instances),
     ):
         # Background execution (wait=False)
         spec = SubagentSpec(role="assistant", prompt="Background work", wait=False)
@@ -165,8 +188,8 @@ async def test_subagent_manager_branch_workspace_git(
             AsyncMock(return_value=mock_proc_ok),
         ),
         patch(
-            "mth_plugins.tools.subagent.manager.AgentLoopService",
-            side_effect=lambda c: MockLoop(c, "Worktree turn done"),
+            "mth_plugins.tools.subagent.manager.create_harness",
+            side_effect=_bundle_child_factory("Worktree turn done"),
         ),
     ):
         spec = SubagentSpec(
@@ -203,8 +226,8 @@ async def test_subagent_manager_branch_workspace_git(
         },
     )
     with patch(
-        "mth_plugins.tools.subagent.manager.AgentLoopService",
-        side_effect=lambda c: MockLoop(c, "Done"),
+        "mth_plugins.tools.subagent.manager.create_harness",
+        side_effect=_bundle_child_factory("Done"),
     ):
         spec2 = SubagentSpec(role="w", prompt="", workspace="branch", wait=True)
         recs2 = await manager_nongit.invoke([spec2])
@@ -217,8 +240,8 @@ async def test_subagent_manager_branch_workspace_git(
             side_effect=OSError("git not found"),
         ),
         patch(
-            "mth_plugins.tools.subagent.manager.AgentLoopService",
-            side_effect=lambda c: MockLoop(c, "Done"),
+            "mth_plugins.tools.subagent.manager.create_harness",
+            side_effect=_bundle_child_factory("Done"),
         ),
     ):
         recs3 = await manager.invoke(
@@ -236,8 +259,8 @@ async def test_subagent_manager_branch_workspace_git(
             AsyncMock(return_value=mock_proc_fail),
         ),
         patch(
-            "mth_plugins.tools.subagent.manager.AgentLoopService",
-            side_effect=lambda c: MockLoop(c, "Done"),
+            "mth_plugins.tools.subagent.manager.create_harness",
+            side_effect=_bundle_child_factory("Done"),
         ),
     ):
         recs4 = await manager.invoke(
@@ -257,14 +280,9 @@ async def test_subagent_manager_manage_and_errors(
         await manager.send_message("nonexistent", "hello")
 
     # 2. Turn execution failure in child loop
-    def _failing_loop_factory(c: Context) -> MockLoop:
-        loop = MockLoop(c)
-        loop.raise_exc = RuntimeError("Execution crashed")
-        return loop
-
     with patch(
-        "mth_plugins.tools.subagent.manager.AgentLoopService",
-        side_effect=_failing_loop_factory,
+        "mth_plugins.tools.subagent.manager.create_harness",
+        side_effect=_bundle_child_factory(raise_exc=RuntimeError("Execution crashed")),
     ):
         spec = SubagentSpec(role="failing", prompt="crash me", wait=True)
         recs = await manager.invoke([spec])
@@ -314,8 +332,8 @@ async def test_subagent_cancellation_cascade(
 
     parent_signal = AbortSignal()
     with patch(
-        "mth_plugins.tools.subagent.manager.AgentLoopService",
-        side_effect=lambda c: MockLoop(c, "Done"),
+        "mth_plugins.tools.subagent.manager.create_harness",
+        side_effect=_bundle_child_factory("Done"),
     ):
         recs = await manager.invoke(
             [SubagentSpec(role="w", prompt="test", wait=True)],
@@ -337,8 +355,8 @@ async def test_subagent_empty_context_and_worktree_cleanup_failure(
     manager = SubagentManager(empty_ctx, {"subsessions_dir": tmp_path / "subsessions"})
 
     with patch(
-        "mth_plugins.tools.subagent.manager.AgentLoopService",
-        side_effect=lambda c: MockLoop(c, "Done"),
+        "mth_plugins.tools.subagent.manager.create_harness",
+        side_effect=_bundle_child_factory("Done"),
     ):
         recs = await manager.invoke(
             [SubagentSpec(role="no_tools", prompt="", wait=True)]
@@ -380,3 +398,82 @@ async def test_subagent_terminate_running_task_and_missing_record(
 
     # Terminate child where sid has no record and no signal
     await manager._terminate_child("nonexistent")
+
+
+@pytest.mark.asyncio
+async def test_child_ctx_bundle_built_copies_providers_and_persists(
+    parent_ctx: Context, tmp_path: Path
+) -> None:
+    """Child ctx comes from the bundle and inherits providers and tools."""
+    mock_provider = MockLLMProvider()
+    alt_provider = MockLLMProvider()
+    parent_ctx.llm.register_provider("mock", mock_provider)
+    parent_ctx.llm.register_provider("alt", alt_provider)
+    parent_ctx.llm.set_active_provider("alt")
+
+    manager = SubagentManager(parent_ctx, {"subsessions_dir": tmp_path / "subsessions"})
+    captured: list[Context] = []
+    with patch(
+        "mth_plugins.tools.subagent.manager.create_harness",
+        side_effect=_bundle_child_factory(captured=captured),
+    ):
+        recs = await manager.invoke(
+            [
+                SubagentSpec(
+                    role="worker",
+                    prompt="Do work",
+                    allowed_tools=frozenset({"read_file"}),
+                    wait=True,
+                )
+            ]
+        )
+    assert len(recs) == 1
+    rec = recs[0]
+    assert rec.state == SubagentState.COMPLETED
+    assert rec.summary == "Turn result"
+    assert rec.effective_tools == ["read_file"]
+
+    assert len(captured) == 1
+    child_ctx = captured[0]
+
+    # Providers copied through the public seams; active provider preserved.
+    assert set(child_ctx.llm.providers) == {"mock", "alt"}
+    assert child_ctx.llm.active_provider is alt_provider
+
+    # Tools filtered through the public seams: allowed tool present,
+    # unlisted and triad tools absent.
+    assert child_ctx.tools.get("read_file") is not None
+    assert child_ctx.tools.get("write_file") is None
+    assert child_ctx.tools.get("invoke_subagent") is None
+
+    # The bundle-built child carries rows the old child never had.
+    assert hasattr(child_ctx, "sessionTitle")
+    assert hasattr(child_ctx, "sessionProjections")
+    assert hasattr(child_ctx, "sessionProjectionCache")
+
+    # The child session persists under the subsessions dir.
+    await child_ctx.sessions.flush()
+    assert rec.session_path.exists()
+    assert tmp_path / "subsessions" in rec.session_path.parents
+
+
+@pytest.mark.asyncio
+async def test_child_with_parent_llm_without_providers(
+    parent_ctx: Context, tmp_path: Path
+) -> None:
+    """A parent LLM with no providers yields a child LLM with none either."""
+    assert parent_ctx.llm.providers == {}
+
+    manager = SubagentManager(parent_ctx, {"subsessions_dir": tmp_path / "subsessions"})
+    captured: list[Context] = []
+    with patch(
+        "mth_plugins.tools.subagent.manager.create_harness",
+        side_effect=_bundle_child_factory(captured=captured),
+    ):
+        recs = await manager.invoke(
+            [SubagentSpec(role="worker", prompt="Do work", wait=True)]
+        )
+    assert recs[0].state == SubagentState.COMPLETED
+    assert len(captured) == 1
+    assert captured[0].llm.providers == {}
+    assert captured[0].llm.active_provider is None
