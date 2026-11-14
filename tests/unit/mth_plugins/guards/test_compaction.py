@@ -15,6 +15,7 @@ from magitech_harness.session.messages import (
     create_tool_result_message,
     create_user_message,
 )
+from magitech_harness.session.projection_registry import SessionProjectionRegistry
 from magitech_harness.session.service import SessionService
 from magitech_harness.session.store import Session
 
@@ -386,6 +387,7 @@ async def test_summarize_events_with_llm_failure_fallback() -> None:
 async def test_compact_session_success() -> None:
     """Verifies compacting session creates a compaction/summary event."""
     ctx = Context()
+    ctx.use(SessionProjectionRegistry)
     ctx.use(SessionService)
     await ctx.flush()
 
@@ -419,6 +421,7 @@ async def test_compact_session_success() -> None:
 async def test_compact_session_not_compacted() -> None:
     """Verifies compact_session returns compacted=False when history is too short."""
     ctx = Context()
+    ctx.use(SessionProjectionRegistry)
     ctx.use(SessionService)
     await ctx.flush()
 
@@ -434,6 +437,7 @@ async def test_compact_session_not_compacted() -> None:
 async def test_component_waterfall_session_compact() -> None:
     """Verifies session/compact waterfall trigger."""
     ctx = Context()
+    ctx.use(SessionProjectionRegistry)
     ctx.use(SessionService)
     await ctx.flush()
 
@@ -467,6 +471,7 @@ async def test_component_waterfall_session_compact() -> None:
 async def test_component_waterfall_agent_pre_step_pressure() -> None:
     """Verifies agent/pre-step waterfall triggers compaction on token pressure."""
     ctx = Context()
+    ctx.use(SessionProjectionRegistry)
     ctx.use(SessionService)
     await ctx.flush()
 
@@ -521,6 +526,7 @@ async def test_summarize_events_edge_cases() -> None:
 async def test_compact_session_unbalanced_boundary() -> None:
     """Verifies compact_session when no safe boundary can be found."""
     ctx = Context()
+    ctx.use(SessionProjectionRegistry)
     ctx.use(SessionService)
     await ctx.flush()
 
@@ -538,6 +544,7 @@ async def test_compact_session_unbalanced_boundary() -> None:
 async def test_component_waterfall_agent_pre_step_below_threshold() -> None:
     """Verifies pre-step does not compact when token estimate is below max."""
     ctx = Context()
+    ctx.use(SessionProjectionRegistry)
     ctx.use(SessionService)
     await ctx.flush()
 
